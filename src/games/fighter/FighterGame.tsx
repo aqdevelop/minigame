@@ -21,8 +21,8 @@ const CANVAS_HEIGHT = 600;
 const PLAYER_WIDTH = 32;
 const PLAYER_HEIGHT = 32;
 const BULLET_SIZE = 4;
-const ENEMY_WIDTH = 28;
-const ENEMY_HEIGHT = 28;
+const ENEMY_WIDTH = 56;
+const ENEMY_HEIGHT = 56;
 const BOSS_WIDTH = 80;
 const BOSS_HEIGHT = 60;
 const COLLISION_DAMAGE = 20;
@@ -60,6 +60,17 @@ interface ShieldItem {
   y: number;
 }
 
+interface BackgroundDecor {
+  id: string;
+  type: 'blackhole' | 'planet' | 'spacecity' | 'asteroid' | 'nebula';
+  x: number;
+  y: number;
+  size: number;
+  speed: number;
+  color?: string;
+  hasRing?: boolean; // For planets
+}
+
 // Pixel art drawing helpers
 const drawPixelRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string) => {
   ctx.fillStyle = color;
@@ -69,53 +80,243 @@ const drawPixelRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: n
 const drawPixelPlane = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, _h: number, color: string, isEnemy = false) => {
   const px = Math.floor(x);
   const py = Math.floor(y);
-  const unit = Math.floor(w / 8);
+  const u = Math.floor(w / 16); // Smaller unit for more detail
 
-  ctx.fillStyle = color;
+  // Darker shade for depth
+  const darkerColor = adjustBrightness(color, -30);
+  const lighterColor = adjustBrightness(color, 30);
 
   if (isEnemy) {
-    // Enemy plane (pointing down)
-    drawPixelRect(ctx, px + unit * 3, py, unit * 2, unit * 2, color);
-    drawPixelRect(ctx, px + unit * 2, py + unit * 2, unit * 4, unit * 2, color);
-    drawPixelRect(ctx, px, py + unit * 4, unit * 8, unit * 2, color);
-    drawPixelRect(ctx, px + unit * 3, py + unit * 6, unit * 2, unit * 2, color);
+    // Detailed enemy plane (pointing down)
+    // Nose
+    drawPixelRect(ctx, px + u * 7, py, u * 2, u * 2, color);
+    drawPixelRect(ctx, px + u * 6, py + u * 2, u * 4, u * 2, color);
     // Cockpit
-    drawPixelRect(ctx, px + unit * 3, py + unit * 2, unit * 2, unit * 2, '#333');
+    drawPixelRect(ctx, px + u * 6, py + u * 4, u * 4, u * 3, '#1a1a2e');
+    drawPixelRect(ctx, px + u * 7, py + u * 4, u * 2, u * 1, '#333355');
+    // Body
+    drawPixelRect(ctx, px + u * 5, py + u * 7, u * 6, u * 4, color);
+    drawPixelRect(ctx, px + u * 4, py + u * 9, u * 8, u * 2, darkerColor);
+    // Wings
+    drawPixelRect(ctx, px, py + u * 8, u * 5, u * 3, color);
+    drawPixelRect(ctx, px + u * 11, py + u * 8, u * 5, u * 3, color);
+    drawPixelRect(ctx, px + u * 1, py + u * 9, u * 3, u * 1, darkerColor);
+    drawPixelRect(ctx, px + u * 12, py + u * 9, u * 3, u * 1, darkerColor);
+    // Tail
+    drawPixelRect(ctx, px + u * 6, py + u * 11, u * 4, u * 3, color);
+    drawPixelRect(ctx, px + u * 7, py + u * 14, u * 2, u * 2, darkerColor);
+    // Engine glow
+    drawPixelRect(ctx, px + u * 7, py + u * 14, u * 2, u * 1, '#ff6600');
+    drawPixelRect(ctx, px + u * 7, py + u * 15, u * 2, u * 1, '#ffaa00');
   } else {
-    // Player plane (pointing up)
-    drawPixelRect(ctx, px + unit * 3, py, unit * 2, unit * 2, color);
-    drawPixelRect(ctx, px + unit * 2, py + unit * 2, unit * 4, unit * 2, color);
-    drawPixelRect(ctx, px, py + unit * 4, unit * 8, unit * 2, color);
-    drawPixelRect(ctx, px + unit * 3, py + unit * 6, unit * 2, unit * 2, color);
+    // Detailed player plane (pointing up)
+    // Nose
+    drawPixelRect(ctx, px + u * 7, py, u * 2, u * 2, lighterColor);
+    drawPixelRect(ctx, px + u * 6, py + u * 2, u * 4, u * 2, color);
+    // Body front
+    drawPixelRect(ctx, px + u * 5, py + u * 4, u * 6, u * 3, color);
     // Cockpit
-    drawPixelRect(ctx, px + unit * 3, py + unit * 4, unit * 2, unit * 2, '#66ccff');
+    drawPixelRect(ctx, px + u * 6, py + u * 5, u * 4, u * 3, '#1a3a5c');
+    drawPixelRect(ctx, px + u * 7, py + u * 6, u * 2, u * 1, '#66ccff');
+    // Body main
+    drawPixelRect(ctx, px + u * 5, py + u * 7, u * 6, u * 4, color);
+    drawPixelRect(ctx, px + u * 4, py + u * 9, u * 8, u * 2, darkerColor);
+    // Wings
+    drawPixelRect(ctx, px, py + u * 8, u * 5, u * 3, color);
+    drawPixelRect(ctx, px + u * 11, py + u * 8, u * 5, u * 3, color);
+    drawPixelRect(ctx, px + u * 1, py + u * 8, u * 3, u * 1, lighterColor);
+    drawPixelRect(ctx, px + u * 12, py + u * 8, u * 3, u * 1, lighterColor);
+    // Wing tips
+    drawPixelRect(ctx, px, py + u * 9, u * 2, u * 2, darkerColor);
+    drawPixelRect(ctx, px + u * 14, py + u * 9, u * 2, u * 2, darkerColor);
+    // Tail
+    drawPixelRect(ctx, px + u * 6, py + u * 11, u * 4, u * 3, color);
+    drawPixelRect(ctx, px + u * 7, py + u * 14, u * 2, u * 2, darkerColor);
+    // Tail fins
+    drawPixelRect(ctx, px + u * 5, py + u * 12, u * 2, u * 2, color);
+    drawPixelRect(ctx, px + u * 9, py + u * 12, u * 2, u * 2, color);
+    // Engine glow
+    drawPixelRect(ctx, px + u * 7, py + u * 14, u * 2, u * 1, '#ff4400');
+    drawPixelRect(ctx, px + u * 7, py + u * 15, u * 2, u * 1, '#ffcc00');
+  }
+};
+
+// Helper to adjust color brightness
+const adjustBrightness = (hex: string, amount: number): string => {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = Math.min(255, Math.max(0, ((num >> 16) & 0xff) + amount));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + amount));
+  const b = Math.min(255, Math.max(0, (num & 0xff) + amount));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+};
+
+// Background decoration drawing functions
+const drawPixelBlackHole = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, time: number) => {
+  const u = Math.floor(size / 12);
+  const rotation = time * 0.001;
+
+  // Accretion disk - outer ring
+  for (let i = 0; i < 8; i++) {
+    const angle = rotation + (Math.PI * 2 * i) / 8;
+    const rx = x + Math.cos(angle) * size * 0.4;
+    const ry = y + Math.sin(angle) * size * 0.15;
+    const alpha = 0.3 + Math.sin(time * 0.005 + i) * 0.2;
+    ctx.fillStyle = `rgba(255, ${100 + i * 20}, 50, ${alpha})`;
+    drawPixelRect(ctx, rx - u, ry - u, u * 2, u * 2, ctx.fillStyle);
+  }
+
+  // Event horizon (black center)
+  drawPixelRect(ctx, x - u * 3, y - u * 2, u * 6, u * 4, '#000000');
+  drawPixelRect(ctx, x - u * 2, y - u * 3, u * 4, u * 6, '#000000');
+
+  // Gravitational lensing effect
+  ctx.fillStyle = 'rgba(100, 50, 150, 0.3)';
+  drawPixelRect(ctx, x - u * 4, y - u * 1, u * 8, u * 2, ctx.fillStyle);
+};
+
+const drawPixelPlanet = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string) => {
+  const u = Math.floor(size / 10);
+  const dark = adjustBrightness(color, -40);
+  const light = adjustBrightness(color, 40);
+
+  // Main sphere
+  drawPixelRect(ctx, x - u * 3, y - u * 2, u * 6, u * 4, color);
+  drawPixelRect(ctx, x - u * 2, y - u * 3, u * 4, u * 6, color);
+  drawPixelRect(ctx, x - u * 4, y - u * 1, u * 8, u * 2, color);
+
+  // Highlight
+  drawPixelRect(ctx, x - u * 2, y - u * 2, u * 2, u * 2, light);
+  drawPixelRect(ctx, x - u * 1, y - u * 3, u * 1, u * 1, light);
+
+  // Shadow
+  drawPixelRect(ctx, x + u * 1, y + u * 1, u * 2, u * 2, dark);
+  drawPixelRect(ctx, x + u * 2, y, u * 1, u * 3, dark);
+
+  // Surface features (craters/continents)
+  drawPixelRect(ctx, x - u * 1, y, u * 2, u * 1, dark);
+  drawPixelRect(ctx, x + u * 1, y - u * 1, u * 1, u * 1, dark);
+};
+
+const drawPixelRingedPlanet = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string) => {
+  const u = Math.floor(size / 12);
+
+  // Ring (behind planet)
+  ctx.fillStyle = 'rgba(200, 180, 150, 0.5)';
+  drawPixelRect(ctx, x - u * 6, y - u * 1, u * 3, u * 1, ctx.fillStyle);
+  drawPixelRect(ctx, x - u * 5, y, u * 2, u * 1, ctx.fillStyle);
+
+  // Planet
+  drawPixelPlanet(ctx, x, y, size * 0.7, color);
+
+  // Ring (in front of planet)
+  ctx.fillStyle = 'rgba(200, 180, 150, 0.6)';
+  drawPixelRect(ctx, x + u * 3, y, u * 3, u * 1, ctx.fillStyle);
+  drawPixelRect(ctx, x + u * 4, y + u * 1, u * 2, u * 1, ctx.fillStyle);
+};
+
+const drawPixelSpaceCity = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, time: number) => {
+  const u = Math.floor(size / 16);
+
+  // Main structure - ring station
+  drawPixelRect(ctx, x - u * 6, y - u * 1, u * 12, u * 2, '#445566');
+  drawPixelRect(ctx, x - u * 7, y, u * 14, u * 1, '#334455');
+
+  // Central hub
+  drawPixelRect(ctx, x - u * 2, y - u * 3, u * 4, u * 6, '#556677');
+  drawPixelRect(ctx, x - u * 1, y - u * 4, u * 2, u * 1, '#667788');
+
+  // Docking arms
+  drawPixelRect(ctx, x - u * 5, y - u * 2, u * 2, u * 1, '#445566');
+  drawPixelRect(ctx, x + u * 3, y - u * 2, u * 2, u * 1, '#445566');
+
+  // Lights (blinking)
+  const blink = Math.floor(time / 500) % 2 === 0;
+  if (blink) {
+    ctx.fillStyle = '#ff0000';
+    drawPixelRect(ctx, x - u * 6, y - u * 1, u * 1, u * 1, ctx.fillStyle);
+    drawPixelRect(ctx, x + u * 5, y - u * 1, u * 1, u * 1, ctx.fillStyle);
+  }
+  ctx.fillStyle = '#00ffff';
+  drawPixelRect(ctx, x, y - u * 4, u * 1, u * 1, ctx.fillStyle);
+
+  // Windows
+  ctx.fillStyle = '#aaccff';
+  for (let i = 0; i < 4; i++) {
+    drawPixelRect(ctx, x - u * 5 + i * u * 3, y, u * 1, u * 1, ctx.fillStyle);
+  }
+};
+
+const drawPixelAsteroid = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  const u = Math.floor(size / 6);
+
+  drawPixelRect(ctx, x - u * 2, y - u * 1, u * 4, u * 2, '#665544');
+  drawPixelRect(ctx, x - u * 1, y - u * 2, u * 2, u * 4, '#554433');
+  drawPixelRect(ctx, x - u * 2, y, u * 1, u * 1, '#443322');
+  drawPixelRect(ctx, x + u * 1, y - u * 1, u * 1, u * 1, '#776655');
+};
+
+const drawPixelNebula = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string) => {
+  const u = Math.floor(size / 8);
+
+  // Cloud layers with transparency
+  for (let i = 0; i < 5; i++) {
+    const offsetX = (i * 17) % 7 - 3;
+    const offsetY = (i * 13) % 5 - 2;
+    ctx.fillStyle = color.replace(')', `, ${0.1 + i * 0.05})`).replace('rgb', 'rgba');
+    drawPixelRect(ctx, x + offsetX * u - u * 2, y + offsetY * u - u, u * 4, u * 2, ctx.fillStyle);
   }
 };
 
 const drawPixelBoss = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, _h: number, hpPercent: number) => {
   const px = Math.floor(x);
   const py = Math.floor(y);
-  const unit = Math.floor(w / 16);
+  const u = Math.floor(w / 20); // Smaller unit for more detail
 
   // Main body
-  ctx.fillStyle = '#8B0000';
-  drawPixelRect(ctx, px + unit * 4, py, unit * 8, unit * 4, '#8B0000');
-  drawPixelRect(ctx, px + unit * 2, py + unit * 4, unit * 12, unit * 4, '#8B0000');
-  drawPixelRect(ctx, px, py + unit * 8, unit * 16, unit * 4, '#8B0000');
+  drawPixelRect(ctx, px + u * 6, py, u * 8, u * 3, '#8B0000');
+  drawPixelRect(ctx, px + u * 4, py + u * 3, u * 12, u * 4, '#8B0000');
+  drawPixelRect(ctx, px + u * 2, py + u * 7, u * 16, u * 5, '#660000');
+  drawPixelRect(ctx, px + u * 3, py + u * 8, u * 14, u * 3, '#8B0000');
 
-  // Wings
-  drawPixelRect(ctx, px, py + unit * 4, unit * 2, unit * 8, '#660000');
-  drawPixelRect(ctx, px + unit * 14, py + unit * 4, unit * 2, unit * 8, '#660000');
+  // Cockpit/Bridge
+  drawPixelRect(ctx, px + u * 8, py + u * 2, u * 4, u * 3, '#1a1a2e');
+  drawPixelRect(ctx, px + u * 9, py + u * 2, u * 2, u * 1, '#333355');
 
-  // Engines
-  drawPixelRect(ctx, px + unit * 3, py + unit * 12, unit * 2, unit * 3, '#ff4400');
-  drawPixelRect(ctx, px + unit * 7, py + unit * 12, unit * 2, unit * 3, '#ff4400');
-  drawPixelRect(ctx, px + unit * 11, py + unit * 12, unit * 2, unit * 3, '#ff4400');
+  // Wings - more detailed
+  drawPixelRect(ctx, px, py + u * 6, u * 4, u * 6, '#8B0000');
+  drawPixelRect(ctx, px + u * 16, py + u * 6, u * 4, u * 6, '#8B0000');
+  drawPixelRect(ctx, px, py + u * 8, u * 3, u * 2, '#660000');
+  drawPixelRect(ctx, px + u * 17, py + u * 8, u * 3, u * 2, '#660000');
 
-  // Eyes
-  ctx.fillStyle = hpPercent > 0.3 ? '#ffff00' : '#ff0000';
-  drawPixelRect(ctx, px + unit * 5, py + unit * 2, unit * 2, unit * 2, ctx.fillStyle);
-  drawPixelRect(ctx, px + unit * 9, py + unit * 2, unit * 2, unit * 2, ctx.fillStyle);
+  // Wing cannons
+  drawPixelRect(ctx, px + u * 1, py + u * 10, u * 2, u * 4, '#444444');
+  drawPixelRect(ctx, px + u * 17, py + u * 10, u * 2, u * 4, '#444444');
+
+  // Tail section
+  drawPixelRect(ctx, px + u * 5, py + u * 12, u * 10, u * 3, '#8B0000');
+  drawPixelRect(ctx, px + u * 6, py + u * 15, u * 8, u * 2, '#660000');
+
+  // Engines with glow
+  drawPixelRect(ctx, px + u * 4, py + u * 14, u * 3, u * 4, '#333333');
+  drawPixelRect(ctx, px + u * 8, py + u * 15, u * 4, u * 4, '#333333');
+  drawPixelRect(ctx, px + u * 13, py + u * 14, u * 3, u * 4, '#333333');
+  // Engine flames
+  const flicker = Math.random() > 0.5 ? 1 : 0;
+  drawPixelRect(ctx, px + u * 5, py + u * 17 + flicker, u * 1, u * 2, '#ff6600');
+  drawPixelRect(ctx, px + u * 9, py + u * 18 + flicker, u * 2, u * 2, '#ff6600');
+  drawPixelRect(ctx, px + u * 14, py + u * 17 + flicker, u * 1, u * 2, '#ff6600');
+
+  // Eyes - angry when low HP
+  const eyeColor = hpPercent > 0.3 ? '#ffff00' : '#ff0000';
+  const eyeGlow = hpPercent > 0.3 ? '#ffaa00' : '#ff6600';
+  drawPixelRect(ctx, px + u * 6, py + u * 4, u * 3, u * 2, eyeGlow);
+  drawPixelRect(ctx, px + u * 11, py + u * 4, u * 3, u * 2, eyeGlow);
+  drawPixelRect(ctx, px + u * 7, py + u * 4, u * 1, u * 1, eyeColor);
+  drawPixelRect(ctx, px + u * 12, py + u * 4, u * 1, u * 1, eyeColor);
+
+  // Armor details
+  drawPixelRect(ctx, px + u * 5, py + u * 9, u * 2, u * 1, '#aa0000');
+  drawPixelRect(ctx, px + u * 13, py + u * 9, u * 2, u * 1, '#aa0000');
 };
 
 export const FighterGame = ({
@@ -157,6 +358,9 @@ export const FighterGame = ({
     lastHomingMissile: 0,
     shields: [] as ShieldItem[],
     playerShieldActive: 0, // timestamp when shield expires
+    backgroundDecors: [] as BackgroundDecor[],
+    gameStartTime: Date.now(),
+    lastDecorSpawn: 0,
   });
   const keysRef = useRef<Set<string>>(new Set());
   const animationRef = useRef<number | undefined>(undefined);
@@ -228,6 +432,9 @@ export const FighterGame = ({
         lastHomingMissile: 0,
         shields: [],
         playerShieldActive: 0,
+        backgroundDecors: [],
+        gameStartTime: Date.now(),
+        lastDecorSpawn: 0,
       };
     }
   }, [isPlaying]);
@@ -341,7 +548,7 @@ export const FighterGame = ({
             const spawnInterval = Math.max(800, 1500 - currentStage * 100 - currentWave * 50);
             if (now - state.lastEnemySpawn > spawnInterval && state.enemies.length < 6) {
               state.lastEnemySpawn = now;
-              const enemyHp = 15 + currentStage * 5 + currentWave * 2;
+              const enemyHp = (30 + currentStage * 10 + currentWave * 4); // 2x HP
               state.enemies.push({
                 id: `enemy-${now}-${Math.random()}`,
                 x: Math.random() * (CANVAS_WIDTH - ENEMY_WIDTH),
@@ -430,6 +637,68 @@ export const FighterGame = ({
         state.particles = state.particles
           .map((p) => ({ ...p, x: p.x + p.vx, y: p.y + p.vy, life: p.life - 1 }))
           .filter((p) => p.life > 0);
+
+        // Background decorations based on survival time
+        const survivalTime = now - state.gameStartTime;
+        const decorSpawnInterval = 8000; // New decoration every 8 seconds
+
+        if (now - state.lastDecorSpawn > decorSpawnInterval) {
+          state.lastDecorSpawn = now;
+
+          // Determine what type of decoration to spawn based on survival time
+          let decorType: BackgroundDecor['type'] = 'asteroid';
+          let decorColor = '#886655';
+          const decorSize = 20 + Math.random() * 30;
+
+          if (survivalTime > 180000) { // 3+ minutes: Space cities
+            const roll = Math.random();
+            if (roll < 0.2) {
+              decorType = 'spacecity';
+            } else if (roll < 0.4) {
+              decorType = 'blackhole';
+            } else if (roll < 0.7) {
+              decorType = 'planet';
+              decorColor = ['#cc8866', '#66aacc', '#88cc66', '#cc6688'][Math.floor(Math.random() * 4)];
+            } else {
+              decorType = 'nebula';
+              decorColor = 'rgb(150, 100, 200)';
+            }
+          } else if (survivalTime > 90000) { // 1.5+ minutes: Black holes appear
+            const roll = Math.random();
+            if (roll < 0.25) {
+              decorType = 'blackhole';
+            } else if (roll < 0.6) {
+              decorType = 'planet';
+              decorColor = ['#cc8866', '#66aacc', '#88cc66'][Math.floor(Math.random() * 3)];
+            } else {
+              decorType = 'asteroid';
+            }
+          } else if (survivalTime > 30000) { // 30+ seconds: Planets appear
+            const roll = Math.random();
+            if (roll < 0.4) {
+              decorType = 'planet';
+              decorColor = ['#cc8866', '#66aacc', '#88cc66'][Math.floor(Math.random() * 3)];
+            } else {
+              decorType = 'asteroid';
+            }
+          }
+
+          state.backgroundDecors.push({
+            id: `decor-${now}-${Math.random()}`,
+            type: decorType,
+            x: Math.random() * CANVAS_WIDTH,
+            y: -decorSize,
+            size: decorSize,
+            speed: 0.3 + Math.random() * 0.3,
+            color: decorColor,
+            hasRing: decorType === 'planet' && Math.random() > 0.6,
+          });
+        }
+
+        // Move background decorations
+        state.backgroundDecors = state.backgroundDecors
+          .map((d) => ({ ...d, y: d.y + d.speed }))
+          .filter((d) => d.y < CANVAS_HEIGHT + d.size);
 
         // Move and track homing missiles
         state.homingMissiles = state.homingMissiles
@@ -663,6 +932,31 @@ export const FighterGame = ({
         const size = (i % 3) === 0 ? 2 : 1;
         ctx.fillRect(Math.floor(x), Math.floor(y), size, size);
       }
+
+      // Draw background decorations (non-attackable, just visuals)
+      state.backgroundDecors.forEach((decor) => {
+        switch (decor.type) {
+          case 'blackhole':
+            drawPixelBlackHole(ctx, decor.x, decor.y, decor.size, now);
+            break;
+          case 'planet':
+            if (decor.hasRing) {
+              drawPixelRingedPlanet(ctx, decor.x, decor.y, decor.size, decor.color || '#cc8866');
+            } else {
+              drawPixelPlanet(ctx, decor.x, decor.y, decor.size, decor.color || '#cc8866');
+            }
+            break;
+          case 'spacecity':
+            drawPixelSpaceCity(ctx, decor.x, decor.y, decor.size, now);
+            break;
+          case 'asteroid':
+            drawPixelAsteroid(ctx, decor.x, decor.y, decor.size);
+            break;
+          case 'nebula':
+            drawPixelNebula(ctx, decor.x, decor.y, decor.size, decor.color || 'rgb(150, 100, 200)');
+            break;
+        }
+      });
 
       // Draw particles
       state.particles.forEach((p) => {
