@@ -11,6 +11,9 @@ function App() {
     nextPlane,
     xpToNextPlane,
     addXP,
+    addBossXP,
+    nextWave,
+    nextStage,
     startGame,
     endGame,
     resetProgress,
@@ -19,7 +22,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Fighter Minigame</h1>
+        <h1>FIGHTER MINIGAME</h1>
       </header>
 
       <main className="app-main">
@@ -27,7 +30,12 @@ function App() {
           isPlaying={state.isPlaying}
           currentPlane={currentPlane}
           score={state.score}
+          stage={state.stage}
+          wave={state.wave}
           onEnemyKill={addXP}
+          onBossKill={addBossXP}
+          onNextWave={nextWave}
+          onNextStage={nextStage}
           onGameOver={endGame}
         />
 
@@ -38,6 +46,8 @@ function App() {
           nextPlane={nextPlane}
           xpToNextPlane={xpToNextPlane}
           highScore={state.highScore}
+          stage={state.stage}
+          wave={state.wave}
           isPlaying={state.isPlaying}
           isGameOver={state.isGameOver}
           onStart={startGame}

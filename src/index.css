@@ -3,13 +3,13 @@
 }
 
 :root {
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  line-height: 1.5;
+  font-family: 'Courier New', monospace;
+  line-height: 1.4;
   font-weight: 400;
 
   color-scheme: dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #0f0f23;
+  background-color: #0a0a1a;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -21,6 +21,11 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background:
+    linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, 0.02) 25%, rgba(255, 255, 255, 0.02) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, 0.02) 75%, rgba(255, 255, 255, 0.02) 76%, transparent 77%),
+    linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, 0.02) 25%, rgba(255, 255, 255, 0.02) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, 0.02) 75%, rgba(255, 255, 255, 0.02) 76%, transparent 77%);
+  background-size: 50px 50px;
+  background-color: #0a0a1a;
 }
 
 #root {
@@ -29,8 +34,27 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   margin: 0;
+  font-family: 'Courier New', monospace;
 }
 
 button {
-  font-family: inherit;
+  font-family: 'Courier New', monospace;
+}
+
+/* Scrollbar styling for retro look */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #444;
+  border: 1px solid #666;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }

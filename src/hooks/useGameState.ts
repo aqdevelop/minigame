@@ -13,6 +13,8 @@ const getInitialState = (): GameState => {
       isPlaying: false,
       isGameOver: false,
       score: 0,
+      stage: parsed.stage || 1,
+      wave: 1,
     };
   }
   return {
@@ -23,6 +25,8 @@ const getInitialState = (): GameState => {
     isPlaying: false,
     isGameOver: false,
     highScore: 0,
+    stage: 1,
+    wave: 1,
   };
 };
 
@@ -34,12 +38,12 @@ export const useGameState = () => {
       totalXP: state.totalXP,
       currentPlaneIndex: state.currentPlaneIndex,
       highScore: state.highScore,
+      stage: state.stage,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-  }, [state.totalXP, state.currentPlaneIndex, state.highScore]);
+  }, [state.totalXP, state.currentPlaneIndex, state.highScore, state.stage]);
 
-  const addXP = useCallback(() => {
-    const amount = XP_PER_KILL;
+  const addXP = useCallback((amount: number = XP_PER_KILL) => {
     setState((prev) => {
       const newTotalXP = prev.totalXP + amount;
       let newPlaneIndex = prev.currentPlaneIndex;
@@ -63,11 +67,51 @@ export const useGameState = () => {
     });
   }, []);
 
+  const addBossXP = useCallback(() => {
+    const amount = XP_PER_KILL * 20; // Boss gives 100 XP
+    setState((prev) => {
+      const newTotalXP = prev.totalXP + amount;
+      let newPlaneIndex = prev.currentPlaneIndex;
+
+      for (let i = prev.currentPlaneIndex + 1; i < PLANES.length; i++) {
+        if (newTotalXP >= PLANES[i].requiredXP) {
+          newPlaneIndex = i;
+        } else {
+          break;
+        }
+      }
+
+      return {
+        ...prev,
+        xp: prev.xp + amount,
+        totalXP: newTotalXP,
+        currentPlaneIndex: newPlaneIndex,
+        score: prev.score + 10,
+      };
+    });
+  }, []);
+
+  const nextWave = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      wave: prev.wave + 1,
+    }));
+  }, []);
+
+  const nextStage = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      stage: prev.stage + 1,
+      wave: 1,
+    }));
+  }, []);
+
   const startGame = useCallback(() => {
     setState((prev) => ({
       ...prev,
       score: 0,
       xp: 0,
+      wave: 1,
       isPlaying: true,
       isGameOver: false,
     }));
@@ -92,6 +136,8 @@ export const useGameState = () => {
       isPlaying: false,
       isGameOver: false,
       highScore: 0,
+      stage: 1,
+      wave: 1,
     });
   }, []);
 
@@ -105,6 +151,9 @@ export const useGameState = () => {
     nextPlane,
     xpToNextPlane,
     addXP,
+    addBossXP,
+    nextWave,
+    nextStage,
     startGame,
     endGame,
     resetProgress,

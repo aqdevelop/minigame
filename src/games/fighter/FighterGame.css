@@ -4,9 +4,18 @@
 }
 
 .game-canvas {
-  border: 2px solid #4a90d9;
-  border-radius: 8px;
-  box-shadow: 0 0 20px rgba(74, 144, 217, 0.3);
+  border: 4px solid #333;
+  border-radius: 0;
+  box-shadow:
+    0 0 0 2px #111,
+    0 0 0 4px #444,
+    0 0 30px rgba(255, 255, 0, 0.2);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.pixel-canvas {
+  background: #0a0a1a;
 }
 
 .game-overlay {
@@ -14,14 +23,21 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.9);
   padding: 20px 30px;
-  border-radius: 10px;
+  border: 4px solid #ffff00;
   text-align: center;
   color: #fff;
 }
 
+.pixel-overlay {
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
 .game-overlay p {
   margin: 10px 0;
-  font-size: 14px;
+  font-size: 12px;
+  color: #ffff00;
 }

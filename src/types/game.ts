@@ -27,6 +27,7 @@ export interface Enemy extends Position {
   speed: number;
   width: number;
   height: number;
+  isBoss?: boolean;
 }
 
 export interface Player extends Position {
@@ -34,6 +35,7 @@ export interface Player extends Position {
   height: number;
   hp: number;
   maxHp: number;
+  invincible?: number; // timestamp when invincibility ends
 }
 
 export interface GameState {
@@ -44,4 +46,6 @@ export interface GameState {
   isPlaying: boolean;
   isGameOver: boolean;
   highScore: number;
+  stage: number;
+  wave: number;
 }
