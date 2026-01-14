@@ -618,8 +618,11 @@ export const FighterGame = ({
             const spawnInterval = Math.max(800, 1500 - currentStage * 100 - currentWave * 50);
             if (now - state.lastEnemySpawn > spawnInterval && state.enemies.length < 6) {
               state.lastEnemySpawn = now;
-              const baseHp = (30 + currentStage * 10 + currentWave * 4); // 2x HP
-              const isSixSeven = Math.random() < 0.5; // 50% chance for sixseven
+              // 스테이지 1은 HP 절반
+              const baseHp = currentStage === 1
+                ? Math.floor((15 + currentWave * 2))
+                : (30 + currentStage * 10 + currentWave * 4);
+              const isSixSeven = Math.random() < 0.1; // 10% chance for sixseven
               const enemyHp = isSixSeven ? Math.floor(baseHp * 1.5) : baseHp;
 
               if (isSixSeven) {
@@ -632,7 +635,7 @@ export const FighterGame = ({
                 y: -ENEMY_HEIGHT,
                 hp: enemyHp,
                 maxHp: enemyHp,
-                speed: 0.5 + Math.random() * 0.7 + currentStage * 0.1,
+                speed: 0.3 + Math.random() * 0.4 + currentStage * 0.05, // 속도 감소
                 width: ENEMY_WIDTH,
                 height: ENEMY_HEIGHT,
                 isSixSeven,
