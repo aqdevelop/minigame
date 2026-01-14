@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import type { Bullet, Enemy, Player, Plane } from '../../types/game';
 import { playSound, startBgm, stopBgm, initAudio } from '../../utils/sound';
 import './FighterGame.css';
@@ -331,6 +331,8 @@ export const FighterGame = ({
   onGameOver,
 }: FighterGameProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const isPausedRef = useRef(false);
   const gameStateRef = useRef({
     player: {
       x: CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2,
@@ -375,7 +377,8 @@ export const FighterGame = ({
     currentPlaneRef.current = currentPlane;
     stageRef.current = stage;
     waveRef.current = wave;
-  }, [isPlaying, currentPlane, stage, wave]);
+    isPausedRef.current = isPaused;
+  }, [isPlaying, currentPlane, stage, wave, isPaused]);
 
   // Initialize audio on first interaction
   useEffect(() => {
@@ -405,6 +408,7 @@ export const FighterGame = ({
   // Reset game state
   useEffect(() => {
     if (isPlaying) {
+      setIsPaused(false); // Reset pause state when game starts
       gameStateRef.current = {
         player: {
           x: CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2,
@@ -442,9 +446,14 @@ export const FighterGame = ({
   // Keyboard handlers
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      keysRef.current.add(e.key.toLowerCase());
-      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(e.key.toLowerCase())) {
+      const key = e.key.toLowerCase();
+      keysRef.current.add(key);
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) {
         e.preventDefault();
+      }
+      // Pause toggle with Escape or P
+      if ((key === 'escape' || key === 'p') && isPlayingRef.current && !gameStateRef.current.gameOver) {
+        setIsPaused(prev => !prev);
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -488,7 +497,7 @@ export const FighterGame = ({
       const now = Date.now();
       const isBossWave = currentWave >= WAVES_PER_STAGE;
 
-      if (isPlayingRef.current && !state.gameOver) {
+      if (isPlayingRef.current && !state.gameOver && !isPausedRef.current) {
         // Wave transition
         if (state.waveTransition > 0) {
           state.waveTransition--;
@@ -1142,6 +1151,12 @@ export const FighterGame = ({
     };
   }, [onEnemyKill, onBossKill, onNextWave, onNextStage, onGameOver]);
 
+  const togglePause = () => {
+    if (isPlaying && !gameStateRef.current.gameOver) {
+      setIsPaused(prev => !prev);
+    }
+  };
+
   return (
     <div className="fighter-game">
       <canvas
@@ -1150,6 +1165,26 @@ export const FighterGame = ({
         height={CANVAS_HEIGHT}
         className="game-canvas pixel-canvas"
       />
+      {/* Pause Button */}
+      {isPlaying && !gameStateRef.current.gameOver && (
+        <button
+          className="pause-button pixel-button"
+          onClick={togglePause}
+          title="Pause (P or ESC)"
+        >
+          {isPaused ? '▶' : '❚❚'}
+        </button>
+      )}
+      {/* Pause Overlay */}
+      {isPaused && (
+        <div className="game-overlay pause-overlay pixel-overlay">
+          <h2>PAUSED</h2>
+          <p>Press P or ESC to resume</p>
+          <button className="resume-button pixel-button" onClick={togglePause}>
+            RESUME
+          </button>
+        </div>
+      )}
       {!isPlaying && (
         <div className="game-overlay pixel-overlay">
           <p>WASD / ARROWS TO MOVE</p>

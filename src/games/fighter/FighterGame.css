@@ -41,3 +41,72 @@
   font-size: 12px;
   color: #ffff00;
 }
+
+.game-overlay h2 {
+  margin: 0 0 15px 0;
+  font-size: 24px;
+  color: #ffff00;
+  text-shadow: 2px 2px 0 #aa8800;
+}
+
+/* Pause Button */
+.pause-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid #ffff00;
+  color: #ffff00;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s;
+  font-family: 'Courier New', monospace;
+}
+
+.pause-button:hover {
+  background: rgba(255, 255, 0, 0.2);
+  transform: scale(1.1);
+}
+
+.pause-button:active {
+  transform: scale(0.95);
+}
+
+/* Pause Overlay */
+.pause-overlay {
+  z-index: 10;
+}
+
+/* Resume Button */
+.resume-button {
+  margin-top: 15px;
+  padding: 10px 25px;
+  background: #ffff00;
+  border: 3px solid #aa8800;
+  color: #000;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transition: all 0.1s;
+}
+
+.resume-button:hover {
+  background: #ffcc00;
+  transform: scale(1.05);
+}
+
+.resume-button:active {
+  transform: scale(0.95);
+}
+
+.pixel-button {
+  image-rendering: pixelated;
+}
