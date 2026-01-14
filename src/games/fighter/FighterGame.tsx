@@ -619,7 +619,7 @@ export const FighterGame = ({
             if (now - state.lastEnemySpawn > spawnInterval && state.enemies.length < 6) {
               state.lastEnemySpawn = now;
               const baseHp = (30 + currentStage * 10 + currentWave * 4); // 2x HP
-              const isSixSeven = Math.random() < 0.3; // 30% chance for sixseven
+              const isSixSeven = Math.random() < 0.5; // 50% chance for sixseven
               const enemyHp = isSixSeven ? Math.floor(baseHp * 1.5) : baseHp;
 
               if (isSixSeven) {
