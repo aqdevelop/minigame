@@ -35,6 +35,9 @@ const HEALTHKIT_SIZE = 16;
 const HOMING_MISSILE_INTERVAL = 10000; // 10 seconds
 const HOMING_MISSILE_SPEED = 3;
 const HOMING_MISSILE_TURN_RATE = 0.03;
+const PLAYER_HOMING_INTERVAL = 10000; // 10 seconds
+const PLAYER_HOMING_SPEED = 5;
+const PLAYER_HOMING_DAMAGE = 50;
 const SHIELD_DROP_CHANCE = 0.4;
 const SHIELD_DURATION = 5000; // 5 seconds of shield
 const SHIELD_SIZE = 18;
@@ -46,6 +49,15 @@ interface HomingMissile {
   vx: number;
   vy: number;
   damage: number;
+}
+
+interface PlayerHomingMissile {
+  id: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  targetId: string | null;
 }
 
 interface HealthKit {
@@ -62,7 +74,7 @@ interface ShieldItem {
 
 interface BackgroundDecor {
   id: string;
-  type: 'blackhole' | 'planet' | 'spacecity' | 'asteroid' | 'nebula';
+  type: 'blackhole' | 'planet' | 'spacecity' | 'asteroid' | 'nebula' | 'giantblackhole';
   x: number;
   y: number;
   size: number;
@@ -172,6 +184,50 @@ const drawPixelBlackHole = (ctx: CanvasRenderingContext2D, x: number, y: number,
   // Gravitational lensing effect
   ctx.fillStyle = 'rgba(100, 50, 150, 0.3)';
   drawPixelRect(ctx, x - u * 4, y - u * 1, u * 8, u * 2, ctx.fillStyle);
+};
+
+// Giant black hole - much larger and more dramatic
+const drawGiantBlackHole = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, time: number) => {
+  const u = Math.floor(size / 24);
+  const rotation = time * 0.0005;
+
+  // Outer gravitational distortion rings
+  for (let ring = 0; ring < 3; ring++) {
+    const ringRadius = size * (0.8 + ring * 0.15);
+    for (let i = 0; i < 16; i++) {
+      const angle = rotation * (1 + ring * 0.3) + (Math.PI * 2 * i) / 16;
+      const rx = x + Math.cos(angle) * ringRadius * 0.5;
+      const ry = y + Math.sin(angle) * ringRadius * 0.2;
+      const alpha = 0.15 + Math.sin(time * 0.003 + i + ring) * 0.1;
+      const r = 150 + ring * 50;
+      const g = 50 + ring * 30;
+      ctx.fillStyle = `rgba(${r}, ${g}, 100, ${alpha})`;
+      drawPixelRect(ctx, rx - u, ry - u, u * 2, u * 2, ctx.fillStyle);
+    }
+  }
+
+  // Accretion disk - bright inner ring
+  for (let i = 0; i < 24; i++) {
+    const angle = rotation * 2 + (Math.PI * 2 * i) / 24;
+    const rx = x + Math.cos(angle) * size * 0.35;
+    const ry = y + Math.sin(angle) * size * 0.12;
+    const alpha = 0.4 + Math.sin(time * 0.008 + i) * 0.2;
+    ctx.fillStyle = `rgba(255, ${150 + i * 4}, 50, ${alpha})`;
+    drawPixelRect(ctx, rx - u * 1.5, ry - u * 1.5, u * 3, u * 3, ctx.fillStyle);
+  }
+
+  // Event horizon (massive black center)
+  drawPixelRect(ctx, x - u * 8, y - u * 5, u * 16, u * 10, '#000000');
+  drawPixelRect(ctx, x - u * 6, y - u * 7, u * 12, u * 14, '#000000');
+  drawPixelRect(ctx, x - u * 10, y - u * 3, u * 20, u * 6, '#000000');
+
+  // Inner void with slight purple haze
+  ctx.fillStyle = 'rgba(30, 0, 50, 0.8)';
+  drawPixelRect(ctx, x - u * 5, y - u * 4, u * 10, u * 8, ctx.fillStyle);
+
+  // Photon sphere glow
+  ctx.fillStyle = 'rgba(255, 200, 100, 0.2)';
+  drawPixelRect(ctx, x - u * 9, y - u * 1, u * 18, u * 2, ctx.fillStyle);
 };
 
 const drawPixelPlanet = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string) => {
@@ -358,6 +414,8 @@ export const FighterGame = ({
     healthkits: [] as HealthKit[],
     homingMissiles: [] as HomingMissile[],
     lastHomingMissile: 0,
+    playerHomingMissiles: [] as PlayerHomingMissile[],
+    lastPlayerHoming: 0,
     shields: [] as ShieldItem[],
     playerShieldActive: 0, // timestamp when shield expires
     backgroundDecors: [] as BackgroundDecor[],
@@ -434,6 +492,8 @@ export const FighterGame = ({
         healthkits: [],
         homingMissiles: [],
         lastHomingMissile: 0,
+        playerHomingMissiles: [],
+        lastPlayerHoming: 0,
         shields: [],
         playerShieldActive: 0,
         backgroundDecors: [],
@@ -511,7 +571,8 @@ export const FighterGame = ({
         const speed = plane.speed;
         const isInvincible = now < (state.player.invincible || 0);
         const hasShield = now < (state.playerShieldActive || 0);
-        const isProtected = isInvincible || hasShield;
+        // Shield now only reduces damage by 50%, not full immunity
+        const damageMultiplier = hasShield ? 0.5 : 1.0;
 
         if (keys.has('arrowleft') || keys.has('a')) state.player.x -= speed;
         if (keys.has('arrowright') || keys.has('d')) state.player.x += speed;
@@ -621,6 +682,37 @@ export const FighterGame = ({
           playSound('boss'); // Warning sound
         }
 
+        // Player homing missiles - every 10 seconds
+        if (now - state.lastPlayerHoming > PLAYER_HOMING_INTERVAL && state.enemies.length > 0) {
+          state.lastPlayerHoming = now;
+          // Find nearest enemy
+          let nearestEnemy = state.enemies[0];
+          let nearestDist = Infinity;
+          state.enemies.forEach((enemy) => {
+            const dx = enemy.x + enemy.width / 2 - (state.player.x + state.player.width / 2);
+            const dy = enemy.y + enemy.height / 2 - (state.player.y);
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < nearestDist) {
+              nearestDist = dist;
+              nearestEnemy = enemy;
+            }
+          });
+
+          const dx = nearestEnemy.x + nearestEnemy.width / 2 - (state.player.x + state.player.width / 2);
+          const dy = nearestEnemy.y + nearestEnemy.height / 2 - state.player.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          state.playerHomingMissiles.push({
+            id: `phoming-${now}`,
+            x: state.player.x + state.player.width / 2,
+            y: state.player.y,
+            vx: (dx / dist) * PLAYER_HOMING_SPEED,
+            vy: (dy / dist) * PLAYER_HOMING_SPEED,
+            targetId: nearestEnemy.id,
+          });
+          playSound('powerup');
+        }
+
         // Move bullets
         state.bullets = state.bullets
           .map((b) => ({ ...b, y: b.y - 12 }))
@@ -659,9 +751,11 @@ export const FighterGame = ({
           let decorColor = '#886655';
           const decorSize = 20 + Math.random() * 30;
 
-          if (survivalTime > 180000) { // 3+ minutes: Space cities
+          if (survivalTime > 180000) { // 3+ minutes: Space cities + Giant black holes
             const roll = Math.random();
-            if (roll < 0.2) {
+            if (roll < 0.1) {
+              decorType = 'giantblackhole';
+            } else if (roll < 0.25) {
               decorType = 'spacecity';
             } else if (roll < 0.4) {
               decorType = 'blackhole';
@@ -692,13 +786,17 @@ export const FighterGame = ({
             }
           }
 
+          // Giant black holes are much larger
+          const finalSize = decorType === 'giantblackhole' ? 120 + Math.random() * 80 : decorSize;
+          const finalSpeed = decorType === 'giantblackhole' ? 0.15 + Math.random() * 0.1 : 0.3 + Math.random() * 0.3;
+
           state.backgroundDecors.push({
             id: `decor-${now}-${Math.random()}`,
             type: decorType,
-            x: Math.random() * CANVAS_WIDTH,
-            y: -decorSize,
-            size: decorSize,
-            speed: 0.3 + Math.random() * 0.3,
+            x: decorType === 'giantblackhole' ? CANVAS_WIDTH / 2 : Math.random() * CANVAS_WIDTH,
+            y: -finalSize,
+            size: finalSize,
+            speed: finalSpeed,
             color: decorColor,
             hasRing: decorType === 'planet' && Math.random() > 0.6,
           });
@@ -738,6 +836,62 @@ export const FighterGame = ({
               y: m.y + normalizedVy,
               vx: normalizedVx,
               vy: normalizedVy,
+            };
+          })
+          .filter((m) => m.x > -20 && m.x < CANVAS_WIDTH + 20 && m.y > -20 && m.y < CANVAS_HEIGHT + 20);
+
+        // Move and track player homing missiles
+        state.playerHomingMissiles = state.playerHomingMissiles
+          .map((m) => {
+            // Find target enemy or nearest enemy
+            let target = state.enemies.find(e => e.id === m.targetId);
+            if (!target && state.enemies.length > 0) {
+              // Find new target
+              target = state.enemies[0];
+              let nearestDist = Infinity;
+              state.enemies.forEach((enemy) => {
+                const dx = enemy.x + enemy.width / 2 - m.x;
+                const dy = enemy.y + enemy.height / 2 - m.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < nearestDist) {
+                  nearestDist = dist;
+                  target = enemy;
+                }
+              });
+            }
+
+            if (target) {
+              const targetX = target.x + target.width / 2;
+              const targetY = target.y + target.height / 2;
+              const dx = targetX - m.x;
+              const dy = targetY - m.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+
+              const desiredVx = (dx / dist) * PLAYER_HOMING_SPEED;
+              const desiredVy = (dy / dist) * PLAYER_HOMING_SPEED;
+
+              const newVx = m.vx + (desiredVx - m.vx) * 0.05;
+              const newVy = m.vy + (desiredVy - m.vy) * 0.05;
+
+              const speed = Math.sqrt(newVx * newVx + newVy * newVy);
+              const normalizedVx = (newVx / speed) * PLAYER_HOMING_SPEED;
+              const normalizedVy = (newVy / speed) * PLAYER_HOMING_SPEED;
+
+              return {
+                ...m,
+                x: m.x + normalizedVx,
+                y: m.y + normalizedVy,
+                vx: normalizedVx,
+                vy: normalizedVy,
+                targetId: target.id,
+              };
+            }
+
+            // No target, just move straight
+            return {
+              ...m,
+              x: m.x + m.vx,
+              y: m.y + m.vy,
             };
           })
           .filter((m) => m.x > -20 && m.x < CANVAS_WIDTH + 20 && m.y > -20 && m.y < CANVAS_HEIGHT + 20);
@@ -851,8 +1005,71 @@ export const FighterGame = ({
         state.bullets = remainingBullets;
         state.enemies = state.enemies.filter((e) => e.hp > 0);
 
+        // Collision: player homing missiles vs enemies
+        const remainingPlayerMissiles: PlayerHomingMissile[] = [];
+        state.playerHomingMissiles.forEach((missile) => {
+          let hit = false;
+          const missileSize = 12;
+          state.enemies.forEach((enemy) => {
+            if (
+              !hit &&
+              missile.x - missileSize / 2 < enemy.x + enemy.width &&
+              missile.x + missileSize / 2 > enemy.x &&
+              missile.y - missileSize / 2 < enemy.y + enemy.height &&
+              missile.y + missileSize / 2 > enemy.y
+            ) {
+              hit = true;
+              enemy.hp -= PLAYER_HOMING_DAMAGE;
+              spawnExplosion(missile.x, missile.y, '#00ff00');
+              playSound('hit');
+
+              if (enemy.hp <= 0) {
+                spawnExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.isBoss ? '#ff0000' : '#ffaa00');
+                playSound('explosion');
+
+                if (enemy.isBoss) {
+                  onBossKill();
+                  state.bossActive = false;
+                  state.waveComplete = true;
+                  state.waveTransition = 120;
+                  onNextStage();
+                  playSound('powerup');
+                } else {
+                  if (Math.random() < HEALTHKIT_DROP_CHANCE) {
+                    state.healthkits.push({
+                      id: `healthkit-${now}-${Math.random()}`,
+                      x: enemy.x + enemy.width / 2 - HEALTHKIT_SIZE / 2,
+                      y: enemy.y + enemy.height / 2,
+                    });
+                  }
+                  if (Math.random() < SHIELD_DROP_CHANCE) {
+                    state.shields.push({
+                      id: `shield-${now}-${Math.random()}`,
+                      x: enemy.x + enemy.width / 2 - SHIELD_SIZE / 2,
+                      y: enemy.y + enemy.height / 2,
+                    });
+                  }
+                  onEnemyKill();
+                  state.enemiesKilledInWave++;
+
+                  if (state.enemiesKilledInWave >= ENEMIES_PER_WAVE) {
+                    state.waveComplete = true;
+                    state.waveTransition = 60;
+                    state.enemiesKilledInWave = 0;
+                    onNextWave();
+                    playSound('wave');
+                  }
+                }
+              }
+            }
+          });
+          if (!hit) remainingPlayerMissiles.push(missile);
+        });
+        state.playerHomingMissiles = remainingPlayerMissiles;
+        state.enemies = state.enemies.filter((e) => e.hp > 0);
+
         // Collision: enemy bullets vs player
-        if (!isProtected) {
+        if (!isInvincible) {
           const remainingEnemyBullets: Bullet[] = [];
           state.enemyBullets.forEach((bullet) => {
             if (
@@ -861,7 +1078,8 @@ export const FighterGame = ({
               bullet.y > state.player.y &&
               bullet.y < state.player.y + state.player.height
             ) {
-              state.player.hp -= bullet.damage;
+              // Shield absorbs 50% damage
+              state.player.hp -= Math.floor(bullet.damage * damageMultiplier);
               state.player.invincible = now + INVINCIBILITY_TIME;
               playSound('damage');
 
@@ -887,7 +1105,8 @@ export const FighterGame = ({
               missile.y - missileSize / 2 < state.player.y + state.player.height &&
               missile.y + missileSize / 2 > state.player.y
             ) {
-              state.player.hp -= missile.damage;
+              // Shield absorbs 50% damage
+              state.player.hp -= Math.floor(missile.damage * damageMultiplier);
               state.player.invincible = now + INVINCIBILITY_TIME;
               spawnExplosion(missile.x, missile.y, '#ff00ff');
               playSound('explosion');
@@ -905,7 +1124,7 @@ export const FighterGame = ({
         }
 
         // Collision: enemies vs player (damage instead of instant death)
-        if (!isProtected) {
+        if (!isInvincible) {
           state.enemies.forEach((enemy) => {
             if (
               enemy.x < state.player.x + state.player.width &&
@@ -913,7 +1132,8 @@ export const FighterGame = ({
               enemy.y < state.player.y + state.player.height &&
               enemy.y + enemy.height > state.player.y
             ) {
-              state.player.hp -= COLLISION_DAMAGE;
+              // Shield absorbs 50% damage
+              state.player.hp -= Math.floor(COLLISION_DAMAGE * damageMultiplier);
               state.player.invincible = now + INVINCIBILITY_TIME;
               playSound('damage');
 
@@ -963,6 +1183,9 @@ export const FighterGame = ({
             break;
           case 'nebula':
             drawPixelNebula(ctx, decor.x, decor.y, decor.size, decor.color || 'rgb(150, 100, 200)');
+            break;
+          case 'giantblackhole':
+            drawGiantBlackHole(ctx, decor.x, decor.y, decor.size, now);
             break;
         }
       });
@@ -1070,6 +1293,32 @@ export const FighterGame = ({
         // Inner glow
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(mx - 1, my - 1, 2, 2);
+      });
+
+      // Draw player homing missiles (green diamond shape with trail)
+      state.playerHomingMissiles.forEach((missile) => {
+        const mx = Math.floor(missile.x);
+        const my = Math.floor(missile.y);
+
+        // Trail effect (green)
+        ctx.fillStyle = 'rgba(0, 255, 100, 0.3)';
+        ctx.fillRect(mx - missile.vx * 2 - 3, my - missile.vy * 2 - 3, 6, 6);
+        ctx.fillStyle = 'rgba(0, 255, 100, 0.5)';
+        ctx.fillRect(mx - missile.vx - 2, my - missile.vy - 2, 4, 4);
+
+        // Missile body (diamond shape)
+        ctx.fillStyle = '#00ff66';
+        ctx.beginPath();
+        ctx.moveTo(mx, my - 8);
+        ctx.lineTo(mx + 5, my);
+        ctx.lineTo(mx, my + 8);
+        ctx.lineTo(mx - 5, my);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner glow
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(mx - 1, my - 1, 3, 3);
       });
 
       // Draw healthkits (pixel cross/medkit style)
