@@ -29,6 +29,15 @@ const COLLISION_DAMAGE = 20;
 const ENEMIES_PER_WAVE = 10;
 const WAVES_PER_STAGE = 5;
 const INVINCIBILITY_TIME = 1500;
+const HEALTHKIT_DROP_CHANCE = 0.4;
+const HEALTHKIT_HEAL_AMOUNT = 50;
+const HEALTHKIT_SIZE = 16;
+
+interface HealthKit {
+  id: string;
+  x: number;
+  y: number;
+}
 
 // Pixel art drawing helpers
 const drawPixelRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string) => {
@@ -122,6 +131,7 @@ export const FighterGame = ({
     waveComplete: false,
     waveTransition: 0,
     particles: [] as { x: number; y: number; vx: number; vy: number; life: number; color: string }[],
+    healthkits: [] as HealthKit[],
   });
   const keysRef = useRef<Set<string>>(new Set());
   const animationRef = useRef<number | undefined>(undefined);
@@ -188,6 +198,7 @@ export const FighterGame = ({
         waveComplete: false,
         waveTransition: 0,
         particles: [],
+        healthkits: [],
       };
     }
   }, [isPlaying]);
@@ -306,7 +317,7 @@ export const FighterGame = ({
                 y: -ENEMY_HEIGHT,
                 hp: enemyHp,
                 maxHp: enemyHp,
-                speed: 1 + Math.random() * 1.5 + currentStage * 0.2,
+                speed: 0.5 + Math.random() * 0.7 + currentStage * 0.1,
                 width: ENEMY_WIDTH,
                 height: ENEMY_HEIGHT,
               });
@@ -370,6 +381,29 @@ export const FighterGame = ({
           .map((p) => ({ ...p, x: p.x + p.vx, y: p.y + p.vy, life: p.life - 1 }))
           .filter((p) => p.life > 0);
 
+        // Move healthkits
+        state.healthkits = state.healthkits
+          .map((h) => ({ ...h, y: h.y + 1.5 }))
+          .filter((h) => h.y < CANVAS_HEIGHT + HEALTHKIT_SIZE);
+
+        // Collision: player vs healthkits
+        const remainingHealthkits: HealthKit[] = [];
+        state.healthkits.forEach((healthkit) => {
+          if (
+            healthkit.x < state.player.x + state.player.width &&
+            healthkit.x + HEALTHKIT_SIZE > state.player.x &&
+            healthkit.y < state.player.y + state.player.height &&
+            healthkit.y + HEALTHKIT_SIZE > state.player.y
+          ) {
+            // Heal player
+            state.player.hp = Math.min(state.player.maxHp, state.player.hp + HEALTHKIT_HEAL_AMOUNT);
+            playSound('powerup');
+          } else {
+            remainingHealthkits.push(healthkit);
+          }
+        });
+        state.healthkits = remainingHealthkits;
+
         // Collision: bullets vs enemies
         const remainingBullets: Bullet[] = [];
         state.bullets.forEach((bullet) => {
@@ -398,6 +432,14 @@ export const FighterGame = ({
                   onNextStage();
                   playSound('powerup');
                 } else {
+                  // Drop healthkit with 40% chance
+                  if (Math.random() < HEALTHKIT_DROP_CHANCE) {
+                    state.healthkits.push({
+                      id: `healthkit-${now}-${Math.random()}`,
+                      x: enemy.x + enemy.width / 2 - HEALTHKIT_SIZE / 2,
+                      y: enemy.y + enemy.height / 2,
+                    });
+                  }
                   onEnemyKill();
                   state.enemiesKilledInWave++;
 
@@ -530,6 +572,19 @@ export const FighterGame = ({
       ctx.fillStyle = '#ff6666';
       state.enemyBullets.forEach((bullet) => {
         ctx.fillRect(Math.floor(bullet.x) - 2, Math.floor(bullet.y), 4, 6);
+      });
+
+      // Draw healthkits (pixel cross/medkit style)
+      state.healthkits.forEach((healthkit) => {
+        const hx = Math.floor(healthkit.x);
+        const hy = Math.floor(healthkit.y);
+        // White box
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(hx, hy, HEALTHKIT_SIZE, HEALTHKIT_SIZE);
+        // Red cross
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(hx + 6, hy + 2, 4, 12);  // Vertical
+        ctx.fillRect(hx + 2, hy + 6, 12, 4);  // Horizontal
       });
 
       // Player HP bar (pixel style)
