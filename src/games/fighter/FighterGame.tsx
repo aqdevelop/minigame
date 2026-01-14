@@ -35,6 +35,9 @@ const HEALTHKIT_SIZE = 16;
 const HOMING_MISSILE_INTERVAL = 10000; // 10 seconds
 const HOMING_MISSILE_SPEED = 3;
 const HOMING_MISSILE_TURN_RATE = 0.03;
+const SHIELD_DROP_CHANCE = 0.4;
+const SHIELD_DURATION = 5000; // 5 seconds of shield
+const SHIELD_SIZE = 18;
 
 interface HomingMissile {
   id: string;
@@ -46,6 +49,12 @@ interface HomingMissile {
 }
 
 interface HealthKit {
+  id: string;
+  x: number;
+  y: number;
+}
+
+interface ShieldItem {
   id: string;
   x: number;
   y: number;
@@ -146,6 +155,8 @@ export const FighterGame = ({
     healthkits: [] as HealthKit[],
     homingMissiles: [] as HomingMissile[],
     lastHomingMissile: 0,
+    shields: [] as ShieldItem[],
+    playerShieldActive: 0, // timestamp when shield expires
   });
   const keysRef = useRef<Set<string>>(new Set());
   const animationRef = useRef<number | undefined>(undefined);
@@ -215,6 +226,8 @@ export const FighterGame = ({
         healthkits: [],
         homingMissiles: [],
         lastHomingMissile: 0,
+        shields: [],
+        playerShieldActive: 0,
       };
     }
   }, [isPlaying]);
@@ -281,6 +294,8 @@ export const FighterGame = ({
         const keys = keysRef.current;
         const speed = plane.speed;
         const isInvincible = now < (state.player.invincible || 0);
+        const hasShield = now < (state.playerShieldActive || 0);
+        const isProtected = isInvincible || hasShield;
 
         if (keys.has('arrowleft') || keys.has('a')) state.player.x -= speed;
         if (keys.has('arrowright') || keys.has('d')) state.player.x += speed;
@@ -454,6 +469,11 @@ export const FighterGame = ({
           .map((h) => ({ ...h, y: h.y + 1.5 }))
           .filter((h) => h.y < CANVAS_HEIGHT + HEALTHKIT_SIZE);
 
+        // Move shields
+        state.shields = state.shields
+          .map((s) => ({ ...s, y: s.y + 1.5 }))
+          .filter((s) => s.y < CANVAS_HEIGHT + SHIELD_SIZE);
+
         // Collision: player vs healthkits
         const remainingHealthkits: HealthKit[] = [];
         state.healthkits.forEach((healthkit) => {
@@ -471,6 +491,24 @@ export const FighterGame = ({
           }
         });
         state.healthkits = remainingHealthkits;
+
+        // Collision: player vs shields
+        const remainingShields: ShieldItem[] = [];
+        state.shields.forEach((shield) => {
+          if (
+            shield.x < state.player.x + state.player.width &&
+            shield.x + SHIELD_SIZE > state.player.x &&
+            shield.y < state.player.y + state.player.height &&
+            shield.y + SHIELD_SIZE > state.player.y
+          ) {
+            // Activate shield
+            state.playerShieldActive = now + SHIELD_DURATION;
+            playSound('powerup');
+          } else {
+            remainingShields.push(shield);
+          }
+        });
+        state.shields = remainingShields;
 
         // Collision: bullets vs enemies
         const remainingBullets: Bullet[] = [];
@@ -508,6 +546,14 @@ export const FighterGame = ({
                       y: enemy.y + enemy.height / 2,
                     });
                   }
+                  // Drop shield with 40% chance (separate roll)
+                  if (Math.random() < SHIELD_DROP_CHANCE) {
+                    state.shields.push({
+                      id: `shield-${now}-${Math.random()}`,
+                      x: enemy.x + enemy.width / 2 - SHIELD_SIZE / 2,
+                      y: enemy.y + enemy.height / 2,
+                    });
+                  }
                   onEnemyKill();
                   state.enemiesKilledInWave++;
 
@@ -528,7 +574,7 @@ export const FighterGame = ({
         state.enemies = state.enemies.filter((e) => e.hp > 0);
 
         // Collision: enemy bullets vs player
-        if (!isInvincible) {
+        if (!isProtected) {
           const remainingEnemyBullets: Bullet[] = [];
           state.enemyBullets.forEach((bullet) => {
             if (
@@ -581,7 +627,7 @@ export const FighterGame = ({
         }
 
         // Collision: enemies vs player (damage instead of instant death)
-        if (!isInvincible) {
+        if (!isProtected) {
           state.enemies.forEach((enemy) => {
             if (
               enemy.x < state.player.x + state.player.width &&
@@ -626,8 +672,37 @@ export const FighterGame = ({
 
       // Draw player
       const isInvincible = now < (state.player.invincible || 0);
+      const hasShield = now < (state.playerShieldActive || 0);
       if (!isInvincible || Math.floor(now / 100) % 2 === 0) {
         drawPixelPlane(ctx, state.player.x, state.player.y, state.player.width, state.player.height, currentPlaneRef.current.color);
+      }
+
+      // Draw shield effect around player
+      if (hasShield) {
+        const centerX = state.player.x + state.player.width / 2;
+        const centerY = state.player.y + state.player.height / 2;
+        const shieldRadius = Math.max(state.player.width, state.player.height) * 0.8;
+        const pulse = Math.sin(now / 100) * 0.2 + 0.8;
+
+        // Outer glow
+        ctx.strokeStyle = `rgba(0, 255, 255, ${0.3 * pulse})`;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, shieldRadius + 4, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Inner shield
+        ctx.strokeStyle = `rgba(0, 255, 255, ${0.7 * pulse})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, shieldRadius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Shield timer bar
+        const remaining = state.playerShieldActive - now;
+        const percent = remaining / SHIELD_DURATION;
+        ctx.fillStyle = '#00ffff';
+        ctx.fillRect(state.player.x, state.player.y - 10, state.player.width * percent, 3);
       }
 
       // Draw player bullets
@@ -705,6 +780,32 @@ export const FighterGame = ({
         ctx.fillStyle = '#ff0000';
         ctx.fillRect(hx + 6, hy + 2, 4, 12);  // Vertical
         ctx.fillRect(hx + 2, hy + 6, 12, 4);  // Horizontal
+      });
+
+      // Draw shield items (cyan hexagon style)
+      state.shields.forEach((shield) => {
+        const sx = Math.floor(shield.x) + SHIELD_SIZE / 2;
+        const sy = Math.floor(shield.y) + SHIELD_SIZE / 2;
+        // Outer glow
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.3)';
+        ctx.beginPath();
+        ctx.arc(sx, sy, SHIELD_SIZE / 2 + 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Shield shape (hexagon)
+        ctx.fillStyle = '#00ffff';
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i - Math.PI / 2;
+          const px = sx + Math.cos(angle) * (SHIELD_SIZE / 2);
+          const py = sy + Math.sin(angle) * (SHIELD_SIZE / 2);
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        // Inner highlight
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(sx - 2, sy - 2, 4, 4);
       });
 
       // Player HP bar (pixel style)
