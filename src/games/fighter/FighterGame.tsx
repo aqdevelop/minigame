@@ -32,6 +32,18 @@ const INVINCIBILITY_TIME = 1500;
 const HEALTHKIT_DROP_CHANCE = 0.4;
 const HEALTHKIT_HEAL_AMOUNT = 50;
 const HEALTHKIT_SIZE = 16;
+const HOMING_MISSILE_INTERVAL = 10000; // 10 seconds
+const HOMING_MISSILE_SPEED = 3;
+const HOMING_MISSILE_TURN_RATE = 0.03;
+
+interface HomingMissile {
+  id: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  damage: number;
+}
 
 interface HealthKit {
   id: string;
@@ -132,6 +144,8 @@ export const FighterGame = ({
     waveTransition: 0,
     particles: [] as { x: number; y: number; vx: number; vy: number; life: number; color: string }[],
     healthkits: [] as HealthKit[],
+    homingMissiles: [] as HomingMissile[],
+    lastHomingMissile: 0,
   });
   const keysRef = useRef<Set<string>>(new Set());
   const animationRef = useRef<number | undefined>(undefined);
@@ -199,6 +213,8 @@ export const FighterGame = ({
         waveTransition: 0,
         particles: [],
         healthkits: [],
+        homingMissiles: [],
+        lastHomingMissile: 0,
       };
     }
   }, [isPlaying]);
@@ -355,6 +371,25 @@ export const FighterGame = ({
           });
         }
 
+        // Homing missiles - every 10 seconds
+        if (now - state.lastHomingMissile > HOMING_MISSILE_INTERVAL && state.enemies.length > 0) {
+          state.lastHomingMissile = now;
+          // Random enemy fires homing missile
+          const shooter = state.enemies[Math.floor(Math.random() * state.enemies.length)];
+          const dx = state.player.x + state.player.width / 2 - (shooter.x + shooter.width / 2);
+          const dy = state.player.y + state.player.height / 2 - (shooter.y + shooter.height);
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          state.homingMissiles.push({
+            id: `homing-${now}`,
+            x: shooter.x + shooter.width / 2,
+            y: shooter.y + shooter.height,
+            vx: (dx / dist) * HOMING_MISSILE_SPEED,
+            vy: (dy / dist) * HOMING_MISSILE_SPEED,
+            damage: 25,
+          });
+          playSound('boss'); // Warning sound
+        }
+
         // Move bullets
         state.bullets = state.bullets
           .map((b) => ({ ...b, y: b.y - 12 }))
@@ -380,6 +415,39 @@ export const FighterGame = ({
         state.particles = state.particles
           .map((p) => ({ ...p, x: p.x + p.vx, y: p.y + p.vy, life: p.life - 1 }))
           .filter((p) => p.life > 0);
+
+        // Move and track homing missiles
+        state.homingMissiles = state.homingMissiles
+          .map((m) => {
+            // Calculate direction to player
+            const targetX = state.player.x + state.player.width / 2;
+            const targetY = state.player.y + state.player.height / 2;
+            const dx = targetX - m.x;
+            const dy = targetY - m.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            // Desired velocity
+            const desiredVx = (dx / dist) * HOMING_MISSILE_SPEED;
+            const desiredVy = (dy / dist) * HOMING_MISSILE_SPEED;
+
+            // Gradually turn towards target
+            const newVx = m.vx + (desiredVx - m.vx) * HOMING_MISSILE_TURN_RATE;
+            const newVy = m.vy + (desiredVy - m.vy) * HOMING_MISSILE_TURN_RATE;
+
+            // Normalize speed
+            const speed = Math.sqrt(newVx * newVx + newVy * newVy);
+            const normalizedVx = (newVx / speed) * HOMING_MISSILE_SPEED;
+            const normalizedVy = (newVy / speed) * HOMING_MISSILE_SPEED;
+
+            return {
+              ...m,
+              x: m.x + normalizedVx,
+              y: m.y + normalizedVy,
+              vx: normalizedVx,
+              vy: normalizedVy,
+            };
+          })
+          .filter((m) => m.x > -20 && m.x < CANVAS_WIDTH + 20 && m.y > -20 && m.y < CANVAS_HEIGHT + 20);
 
         // Move healthkits
         state.healthkits = state.healthkits
@@ -484,6 +552,32 @@ export const FighterGame = ({
             }
           });
           state.enemyBullets = remainingEnemyBullets;
+
+          // Collision: homing missiles vs player
+          const remainingMissiles: HomingMissile[] = [];
+          state.homingMissiles.forEach((missile) => {
+            const missileSize = 10;
+            if (
+              missile.x - missileSize / 2 < state.player.x + state.player.width &&
+              missile.x + missileSize / 2 > state.player.x &&
+              missile.y - missileSize / 2 < state.player.y + state.player.height &&
+              missile.y + missileSize / 2 > state.player.y
+            ) {
+              state.player.hp -= missile.damage;
+              state.player.invincible = now + INVINCIBILITY_TIME;
+              spawnExplosion(missile.x, missile.y, '#ff00ff');
+              playSound('explosion');
+
+              if (state.player.hp <= 0) {
+                state.gameOver = true;
+                spawnExplosion(state.player.x + state.player.width / 2, state.player.y + state.player.height / 2, '#00ffff');
+                onGameOver();
+              }
+            } else {
+              remainingMissiles.push(missile);
+            }
+          });
+          state.homingMissiles = remainingMissiles;
         }
 
         // Collision: enemies vs player (damage instead of instant death)
@@ -572,6 +666,32 @@ export const FighterGame = ({
       ctx.fillStyle = '#ff6666';
       state.enemyBullets.forEach((bullet) => {
         ctx.fillRect(Math.floor(bullet.x) - 2, Math.floor(bullet.y), 4, 6);
+      });
+
+      // Draw homing missiles (purple diamond shape with trail)
+      state.homingMissiles.forEach((missile) => {
+        const mx = Math.floor(missile.x);
+        const my = Math.floor(missile.y);
+
+        // Trail effect
+        ctx.fillStyle = 'rgba(255, 0, 255, 0.3)';
+        ctx.fillRect(mx - missile.vx * 3 - 3, my - missile.vy * 3 - 3, 6, 6);
+        ctx.fillStyle = 'rgba(255, 0, 255, 0.5)';
+        ctx.fillRect(mx - missile.vx * 1.5 - 2, my - missile.vy * 1.5 - 2, 4, 4);
+
+        // Missile body (diamond shape)
+        ctx.fillStyle = '#ff00ff';
+        ctx.beginPath();
+        ctx.moveTo(mx, my - 6);
+        ctx.lineTo(mx + 4, my);
+        ctx.lineTo(mx, my + 6);
+        ctx.lineTo(mx - 4, my);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner glow
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(mx - 1, my - 1, 2, 2);
       });
 
       // Draw healthkits (pixel cross/medkit style)
