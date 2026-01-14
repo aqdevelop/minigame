@@ -1,0 +1,27 @@
+.fighter-game {
+  position: relative;
+  display: inline-block;
+}
+
+.game-canvas {
+  border: 2px solid #4a90d9;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(74, 144, 217, 0.3);
+}
+
+.game-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  padding: 20px 30px;
+  border-radius: 10px;
+  text-align: center;
+  color: #fff;
+}
+
+.game-overlay p {
+  margin: 10px 0;
+  font-size: 14px;
+}

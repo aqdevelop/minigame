@@ -1,0 +1,88 @@
+import type { Plane } from '../types/game';
+
+export const PLANES: Plane[] = [
+  {
+    id: 'p51',
+    name: 'P-51 Mustang',
+    nameKo: 'P-51 머스탱',
+    speed: 5,
+    fireRate: 3,
+    damage: 10,
+    requiredXP: 0,
+    color: '#4A90D9',
+  },
+  {
+    id: 'mig15',
+    name: 'MiG-15',
+    nameKo: 'MiG-15',
+    speed: 6,
+    fireRate: 4,
+    damage: 15,
+    requiredXP: 100,
+    color: '#D94A4A',
+  },
+  {
+    id: 'f86',
+    name: 'F-86 Sabre',
+    nameKo: 'F-86 세이버',
+    speed: 7,
+    fireRate: 4,
+    damage: 18,
+    requiredXP: 250,
+    color: '#5DD94A',
+  },
+  {
+    id: 'mig21',
+    name: 'MiG-21',
+    nameKo: 'MiG-21',
+    speed: 8,
+    fireRate: 5,
+    damage: 22,
+    requiredXP: 500,
+    color: '#D9A84A',
+  },
+  {
+    id: 'f4',
+    name: 'F-4 Phantom II',
+    nameKo: 'F-4 팬텀 II',
+    speed: 9,
+    fireRate: 6,
+    damage: 28,
+    requiredXP: 1000,
+    color: '#9B4AD9',
+  },
+  {
+    id: 'f14',
+    name: 'F-14 Tomcat',
+    nameKo: 'F-14 톰캣',
+    speed: 10,
+    fireRate: 7,
+    damage: 35,
+    requiredXP: 2000,
+    color: '#4AD9D9',
+  },
+  {
+    id: 'f22',
+    name: 'F-22 Raptor',
+    nameKo: 'F-22 랩터',
+    speed: 12,
+    fireRate: 8,
+    damage: 45,
+    requiredXP: 4000,
+    color: '#D94A9B',
+  },
+  {
+    id: 'su57',
+    name: 'Su-57 Felon',
+    nameKo: 'Su-57 펠론',
+    speed: 13,
+    fireRate: 9,
+    damage: 55,
+    requiredXP: 7000,
+    color: '#FFD700',
+  },
+];
+
+export const XP_PER_KILL = 5;
+export const ENEMY_BASE_HP = 20;
+export const ENEMY_HP_INCREASE_RATE = 0.1; // 10% increase per 100 score

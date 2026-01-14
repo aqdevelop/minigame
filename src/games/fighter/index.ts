@@ -1,0 +1,1 @@
+export { FighterGame } from './FighterGame';

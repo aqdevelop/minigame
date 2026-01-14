@@ -1,0 +1,177 @@
+.game-ui {
+  background: #16213e;
+  padding: 20px;
+  border-radius: 10px;
+  min-width: 280px;
+  color: #fff;
+}
+
+.game-ui h2 {
+  margin: 0 0 20px 0;
+  text-align: center;
+  color: #4a90d9;
+}
+
+.game-ui h3 {
+  margin: 15px 0 10px 0;
+  font-size: 14px;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.stats-panel {
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #2a3a5a;
+}
+
+.stat-label {
+  color: #888;
+}
+
+.stat-value {
+  font-weight: bold;
+  font-family: monospace;
+}
+
+.stat-value.highlight {
+  color: #ffd700;
+}
+
+.plane-info {
+  margin-top: 15px;
+}
+
+.current-plane {
+  background: #1a1a2e;
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+
+.plane-name {
+  display: block;
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.plane-stats {
+  font-size: 12px;
+  color: #888;
+}
+
+.upgrade-progress {
+  margin-top: 15px;
+}
+
+.next-plane {
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #1a1a2e;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4a90d9, #67b8f7);
+  transition: width 0.3s ease;
+}
+
+.xp-remaining {
+  font-size: 12px;
+  color: #888;
+}
+
+.plane-list {
+  margin-top: 15px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.plane-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+  margin: 4px 0;
+  background: #1a1a2e;
+  border-radius: 4px;
+  border-left: 3px solid;
+  font-size: 12px;
+}
+
+.plane-item.locked {
+  opacity: 0.5;
+}
+
+.plane-item.unlocked {
+  opacity: 1;
+}
+
+.plane-item-xp {
+  color: #888;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-start {
+  background: linear-gradient(135deg, #4a90d9, #2e6bb0);
+  color: #fff;
+}
+
+.btn-start:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(74, 144, 217, 0.4);
+}
+
+.btn-reset {
+  background: #333;
+  color: #888;
+}
+
+.btn-reset:hover {
+  background: #444;
+  color: #fff;
+}
+
+.game-over-message {
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(255, 68, 68, 0.2);
+  border: 1px solid #ff4444;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.game-over-message h2 {
+  color: #ff4444;
+  margin-bottom: 10px;
+}
+
+.game-over-message p {
+  margin: 5px 0;
+}
