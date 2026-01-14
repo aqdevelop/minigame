@@ -9,12 +9,15 @@ const getInitialState = (): GameState => {
   if (saved) {
     const parsed = JSON.parse(saved);
     return {
-      ...parsed,
+      score: 0,
+      xp: 0,
+      totalXP: parsed.totalXP || 0,
+      currentPlaneIndex: parsed.currentPlaneIndex || 0,
       isPlaying: false,
       isGameOver: false,
-      score: 0,
+      highScore: parsed.highScore || 0,
       stage: parsed.stage || 1,
-      wave: 1,
+      wave: parsed.wave || 1,
     };
   }
   return {
@@ -39,9 +42,10 @@ export const useGameState = () => {
       currentPlaneIndex: state.currentPlaneIndex,
       highScore: state.highScore,
       stage: state.stage,
+      wave: state.wave,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-  }, [state.totalXP, state.currentPlaneIndex, state.highScore, state.stage]);
+  }, [state.totalXP, state.currentPlaneIndex, state.highScore, state.stage, state.wave]);
 
   const addXP = useCallback((amount: number = XP_PER_KILL) => {
     setState((prev) => {
@@ -111,7 +115,7 @@ export const useGameState = () => {
       ...prev,
       score: 0,
       xp: 0,
-      wave: 1,
+      // stage와 wave는 저장된 값 유지 (게임 오버 후에도 같은 스테이지에서 재시작)
       isPlaying: true,
       isGameOver: false,
     }));
