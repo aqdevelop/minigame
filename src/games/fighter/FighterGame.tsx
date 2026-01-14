@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import type { Bullet, Enemy, Player, Plane } from '../../types/game';
-import { playSound, startBgm, stopBgm, initAudio } from '../../utils/sound';
+import { playSound, startBgm, stopBgm, initAudio, speakSixSeven } from '../../utils/sound';
 import './FighterGame.css';
 
 interface FighterGameProps {
@@ -618,7 +618,14 @@ export const FighterGame = ({
             const spawnInterval = Math.max(800, 1500 - currentStage * 100 - currentWave * 50);
             if (now - state.lastEnemySpawn > spawnInterval && state.enemies.length < 6) {
               state.lastEnemySpawn = now;
-              const enemyHp = (30 + currentStage * 10 + currentWave * 4); // 2x HP
+              const baseHp = (30 + currentStage * 10 + currentWave * 4); // 2x HP
+              const isSixSeven = Math.random() < 0.3; // 30% chance for sixseven
+              const enemyHp = isSixSeven ? Math.floor(baseHp * 1.5) : baseHp;
+
+              if (isSixSeven) {
+                speakSixSeven(); // Say "six seven"
+              }
+
               state.enemies.push({
                 id: `enemy-${now}-${Math.random()}`,
                 x: Math.random() * (CANVAS_WIDTH - ENEMY_WIDTH),
@@ -628,6 +635,7 @@ export const FighterGame = ({
                 speed: 0.5 + Math.random() * 0.7 + currentStage * 0.1,
                 width: ENEMY_WIDTH,
                 height: ENEMY_HEIGHT,
+                isSixSeven,
               });
             }
           }
@@ -1253,12 +1261,37 @@ export const FighterGame = ({
           ctx.font = '8px monospace';
           ctx.fillText('BOSS', barX + barWidth / 2 - 12, 8);
         } else {
-          drawPixelPlane(ctx, enemy.x, enemy.y, enemy.width, enemy.height, '#ff4444', true);
+          // SixSeven enemies are golden/orange color with glow effect
+          const enemyColor = enemy.isSixSeven ? '#FFD700' : '#ff4444';
+
+          // Draw glow for sixseven enemies
+          if (enemy.isSixSeven) {
+            const pulse = Math.sin(now / 150) * 0.3 + 0.7;
+            ctx.fillStyle = `rgba(255, 215, 0, ${0.3 * pulse})`;
+            ctx.fillRect(
+              Math.floor(enemy.x) - 4,
+              Math.floor(enemy.y) - 4,
+              enemy.width + 8,
+              enemy.height + 8
+            );
+          }
+
+          drawPixelPlane(ctx, enemy.x, enemy.y, enemy.width, enemy.height, enemyColor, true);
+
+          // "67" label for sixseven enemies
+          if (enemy.isSixSeven) {
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText('67', Math.floor(enemy.x + enemy.width / 2 - 8), Math.floor(enemy.y + enemy.height + 12));
+          }
+
           // Enemy HP bar
           const hpPercent = enemy.hp / enemy.maxHp;
           ctx.fillStyle = '#333';
           ctx.fillRect(Math.floor(enemy.x), Math.floor(enemy.y) - 6, enemy.width, 3);
-          ctx.fillStyle = hpPercent > 0.5 ? '#00ff00' : hpPercent > 0.25 ? '#ffff00' : '#ff0000';
+          ctx.fillStyle = enemy.isSixSeven
+            ? (hpPercent > 0.5 ? '#FFD700' : hpPercent > 0.25 ? '#FFA500' : '#FF4500')
+            : (hpPercent > 0.5 ? '#00ff00' : hpPercent > 0.25 ? '#ffff00' : '#ff0000');
           ctx.fillRect(Math.floor(enemy.x), Math.floor(enemy.y) - 6, Math.floor(enemy.width * hpPercent), 3);
         }
       });

@@ -173,3 +173,20 @@ export const stopBgm = () => {
 export const initAudio = () => {
   getAudioContext();
 };
+
+// Speech synthesis for "sixseven" enemy
+export const speakSixSeven = () => {
+  if ('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance('six seven');
+    utterance.rate = 0.8;
+    utterance.pitch = 0.5;
+    utterance.volume = 0.7;
+    // Try to get a robotic-sounding voice
+    const voices = speechSynthesis.getVoices();
+    const robotVoice = voices.find(v => v.name.includes('Google') || v.name.includes('English'));
+    if (robotVoice) {
+      utterance.voice = robotVoice;
+    }
+    speechSynthesis.speak(utterance);
+  }
+};

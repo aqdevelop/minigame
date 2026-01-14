@@ -28,6 +28,7 @@ export interface Enemy extends Position {
   width: number;
   height: number;
   isBoss?: boolean;
+  isSixSeven?: boolean;
 }
 
 export interface Player extends Position {
