@@ -428,6 +428,13 @@ export const FighterGame = ({
   const currentPlaneRef = useRef(currentPlane);
   const stageRef = useRef(stage);
   const waveRef = useRef(wave);
+  const touchRef = useRef<{ active: boolean; startX: number; startY: number; currentX: number; currentY: number }>({
+    active: false,
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    currentY: 0,
+  });
 
   // Keep refs in sync
   useEffect(() => {
@@ -527,6 +534,61 @@ export const FighterGame = ({
     };
   }, []);
 
+  // Touch handlers for mobile
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const getCanvasCoords = (touch: Touch) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = CANVAS_WIDTH / rect.width;
+      const scaleY = CANVAS_HEIGHT / rect.height;
+      return {
+        x: (touch.clientX - rect.left) * scaleX,
+        y: (touch.clientY - rect.top) * scaleY,
+      };
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const coords = getCanvasCoords(touch);
+      touchRef.current = {
+        active: true,
+        startX: coords.x,
+        startY: coords.y,
+        currentX: coords.x,
+        currentY: coords.y,
+      };
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      if (!touchRef.current.active) return;
+      const touch = e.touches[0];
+      const coords = getCanvasCoords(touch);
+      touchRef.current.currentX = coords.x;
+      touchRef.current.currentY = coords.y;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      e.preventDefault();
+      touchRef.current.active = false;
+    };
+
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+      canvas.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, []);
+
   // Main game loop
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -568,16 +630,35 @@ export const FighterGame = ({
 
         // Player movement
         const keys = keysRef.current;
+        const touch = touchRef.current;
         const speed = plane.speed;
         const isInvincible = now < (state.player.invincible || 0);
         const hasShield = now < (state.playerShieldActive || 0);
         // Shield now only reduces damage by 50%, not full immunity
         const damageMultiplier = hasShield ? 0.5 : 1.0;
 
+        // Keyboard controls
         if (keys.has('arrowleft') || keys.has('a')) state.player.x -= speed;
         if (keys.has('arrowright') || keys.has('d')) state.player.x += speed;
         if (keys.has('arrowup') || keys.has('w')) state.player.y -= speed;
         if (keys.has('arrowdown') || keys.has('s')) state.player.y += speed;
+
+        // Touch controls - move player towards touch point
+        if (touch.active) {
+          const targetX = touch.currentX - state.player.width / 2;
+          const targetY = touch.currentY - state.player.height / 2;
+          const dx = targetX - state.player.x;
+          const dy = targetY - state.player.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist > speed) {
+            state.player.x += (dx / dist) * speed * 1.5;
+            state.player.y += (dy / dist) * speed * 1.5;
+          } else {
+            state.player.x = targetX;
+            state.player.y = targetY;
+          }
+        }
 
         state.player.x = Math.max(0, Math.min(CANVAS_WIDTH - state.player.width, state.player.x));
         state.player.y = Math.max(0, Math.min(CANVAS_HEIGHT - state.player.height, state.player.y));
@@ -1473,6 +1554,7 @@ export const FighterGame = ({
       {!isPlaying && (
         <div className="game-overlay pixel-overlay">
           <p>WASD / ARROWS TO MOVE</p>
+          <p>TOUCH TO MOVE (MOBILE)</p>
           <p>AUTO FIRE</p>
         </div>
       )}
