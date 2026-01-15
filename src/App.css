@@ -39,6 +39,11 @@
   text-shadow: 3px 3px #006600, -1px -1px #00ffff;
 }
 
+.runner-header h1 {
+  color: #00ffff;
+  text-shadow: 3px 3px #006666, -1px -1px #ff00ff;
+}
+
 .racing-main {
   justify-content: center;
 }

@@ -1,7 +1,7 @@
 import './LandingPage.css';
 
 interface LandingPageProps {
-  onSelectGame: (game: 'fighter' | 'racing') => void;
+  onSelectGame: (game: 'fighter' | 'racing' | 'runner') => void;
 }
 
 export const LandingPage = ({ onSelectGame }: LandingPageProps) => {
@@ -28,6 +28,15 @@ export const LandingPage = ({ onSelectGame }: LandingPageProps) => {
             <div className="game-info">
               <h2>RACING</h2>
               <p>레트로 레이싱 게임</p>
+            </div>
+            <div className="play-arrow">▶</div>
+          </button>
+
+          <button className="game-card runner-card" onClick={() => onSelectGame('runner')}>
+            <div className="game-icon">🟦</div>
+            <div className="game-info">
+              <h2>RUNNER</h2>
+              <p>지오메트리 점프 게임</p>
             </div>
             <div className="play-arrow">▶</div>
           </button>

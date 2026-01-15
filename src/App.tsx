@@ -2,12 +2,13 @@ import { useState } from 'react';
 import './App.css';
 import { FighterGame } from './games/fighter';
 import { RacingGame, RacingUI, useRacingState } from './games/racing';
+import { RunnerGame } from './games/runner';
 import { GameUI } from './components/GameUI';
 import { VersionBadge } from './components/VersionBadge';
 import { LandingPage } from './components/LandingPage';
 import { useGameState } from './hooks/useGameState';
 
-type PageType = 'landing' | 'fighter' | 'racing';
+type PageType = 'landing' | 'fighter' | 'racing' | 'runner';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('landing');
@@ -40,7 +41,7 @@ function App() {
     setCurrentPage('landing');
   };
 
-  const handleSelectGame = (game: 'fighter' | 'racing') => {
+  const handleSelectGame = (game: 'fighter' | 'racing' | 'runner') => {
     setCurrentPage(game);
   };
 
@@ -55,6 +56,25 @@ function App() {
         <LandingPage onSelectGame={handleSelectGame} />
         <VersionBadge />
       </>
+    );
+  }
+
+  if (currentPage === 'runner') {
+    return (
+      <div className="app">
+        <header className="app-header runner-header">
+          <button className="back-button" onClick={handleBackToHome}>
+            ← HOME
+          </button>
+          <h1>RUNNER</h1>
+        </header>
+
+        <main className="app-main">
+          <RunnerGame />
+        </main>
+
+        <VersionBadge />
+      </div>
     );
   }
 

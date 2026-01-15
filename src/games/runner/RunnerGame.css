@@ -1,0 +1,149 @@
+.runner-game {
+  position: relative;
+  display: inline-block;
+}
+
+.runner-canvas {
+  border: 4px solid #00ffff;
+  box-shadow:
+    0 0 0 2px #111,
+    0 0 0 4px #444,
+    0 0 30px rgba(0, 255, 255, 0.3);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #1a0033;
+}
+
+.runner-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.9);
+  padding: 30px 40px;
+  border: 4px solid #00ffff;
+  text-align: center;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+}
+
+.runner-overlay h2 {
+  margin: 0 0 20px 0;
+  font-size: 28px;
+  color: #00ffff;
+  text-shadow: 2px 2px 0 #006666;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+}
+
+.runner-overlay p {
+  margin: 10px 0;
+  font-size: 12px;
+  color: #88ffff;
+  text-transform: uppercase;
+}
+
+.runner-overlay.gameover {
+  border-color: #ff4444;
+}
+
+.runner-overlay.gameover h2 {
+  color: #ff4444;
+  text-shadow: 2px 2px 0 #660000;
+}
+
+.runner-overlay.gameover p {
+  color: #ff8888;
+}
+
+.runner-overlay .new-record {
+  color: #ffff00 !important;
+  font-size: 18px !important;
+  font-weight: bold;
+  animation: flash 0.5s ease-in-out infinite;
+}
+
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.runner-overlay .start-button {
+  margin-top: 20px;
+  padding: 12px 30px;
+  background: #006666;
+  border: 3px solid #00ffff;
+  color: #00ffff;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  transition: all 0.2s;
+}
+
+.runner-overlay .start-button:hover {
+  background: #009999;
+  box-shadow: 0 0 15px #00ffff;
+  transform: scale(1.05);
+}
+
+.runner-overlay .start-button:active {
+  transform: scale(0.95);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .runner-game {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .runner-canvas {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    touch-action: none;
+  }
+
+  .runner-overlay {
+    width: 80%;
+    max-width: 350px;
+    padding: 20px 25px;
+  }
+
+  .runner-overlay h2 {
+    font-size: 22px;
+  }
+
+  .runner-overlay p {
+    font-size: 11px;
+  }
+
+  .runner-overlay .start-button {
+    padding: 10px 25px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .runner-canvas {
+    border-width: 2px;
+    box-shadow:
+      0 0 0 1px #111,
+      0 0 0 2px #444,
+      0 0 15px rgba(0, 255, 255, 0.3);
+  }
+
+  .runner-overlay {
+    padding: 15px 20px;
+    border-width: 2px;
+  }
+
+  .runner-overlay h2 {
+    font-size: 18px;
+    letter-spacing: 2px;
+  }
+}
