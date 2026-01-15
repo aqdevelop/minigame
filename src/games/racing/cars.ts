@@ -73,5 +73,3 @@ export const RACING_CARS: RacingCar[] = [
     price: 20000,
   },
 ];
-
-export const COIN_PER_SCORE = 1; // 1 coin per 1 score

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RACING_CARS, COIN_PER_SCORE } from './cars';
+import { RACING_CARS } from './cars';
 
 const STORAGE_KEY = 'racing-game-state';
 
@@ -40,8 +40,7 @@ export const useRacingState = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
-  const addCoins = useCallback((score: number) => {
-    const coinsEarned = Math.floor(score * COIN_PER_SCORE);
+  const addCoins = useCallback((coinsEarned: number) => {
     setState(prev => ({
       ...prev,
       coins: prev.coins + coinsEarned,
@@ -60,27 +59,33 @@ export const useRacingState = () => {
   const buyCar = useCallback((carId: string): boolean => {
     const car = RACING_CARS.find(c => c.id === carId);
     if (!car) return false;
-    if (state.unlockedCars.includes(carId)) return false;
-    if (state.coins < car.price) return false;
 
-    setState(prev => ({
-      ...prev,
-      coins: prev.coins - car.price,
-      unlockedCars: [...prev.unlockedCars, carId],
-    }));
-    return true;
-  }, [state.coins, state.unlockedCars]);
+    let success = false;
+    setState(prev => {
+      if (prev.unlockedCars.includes(carId)) return prev;
+      if (prev.coins < car.price) return prev;
+      success = true;
+      return {
+        ...prev,
+        coins: prev.coins - car.price,
+        unlockedCars: [...prev.unlockedCars, carId],
+      };
+    });
+    return success;
+  }, []);
 
   const selectCar = useCallback((carIndex: number) => {
     const car = RACING_CARS[carIndex];
     if (!car) return;
-    if (!state.unlockedCars.includes(car.id)) return;
 
-    setState(prev => ({
-      ...prev,
-      currentCarIndex: carIndex,
-    }));
-  }, [state.unlockedCars]);
+    setState(prev => {
+      if (!prev.unlockedCars.includes(car.id)) return prev;
+      return {
+        ...prev,
+        currentCarIndex: carIndex,
+      };
+    });
+  }, []);
 
   const resetProgress = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);

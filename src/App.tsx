@@ -44,8 +44,8 @@ function App() {
     setCurrentPage(game);
   };
 
-  const handleRacingGameEnd = (score: number) => {
-    addCoins(score);
+  const handleRacingGameEnd = (score: number, coins: number) => {
+    addCoins(coins);
     updateHighScore(score);
   };
 

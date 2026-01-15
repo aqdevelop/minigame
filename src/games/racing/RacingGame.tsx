@@ -30,7 +30,7 @@ interface Coin {
 interface RacingGameProps {
   currentCar: RacingCar;
   highScore: number;
-  onGameEnd: (score: number) => void;
+  onGameEnd: (score: number, collectedCoins: number) => void;
 }
 
 // Pixel art drawing helpers
@@ -130,6 +130,7 @@ export const RacingGame = ({ currentCar, highScore, onGameEnd }: RacingGameProps
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<'idle' | 'countdown' | 'playing' | 'gameover'>('idle');
   const [score, setScore] = useState(0);
+  const [collectedCoins, setCollectedCoins] = useState(0);
   const currentCarRef = useRef(currentCar);
 
   // Keep car ref updated
@@ -149,6 +150,7 @@ export const RacingGame = ({ currentCar, highScore, onGameEnd }: RacingGameProps
     distance: 0,
     roadOffset: 0,
     score: 0,
+    collectedCoins: 0,
   });
 
   const keysRef = useRef<Set<string>>(new Set());
@@ -267,9 +269,11 @@ export const RacingGame = ({ currentCar, highScore, onGameEnd }: RacingGameProps
       distance: 0,
       roadOffset: 0,
       score: 0,
+      collectedCoins: 0,
     };
 
     setScore(0);
+    setCollectedCoins(0);
 
     // Start countdown
     speakCountdown(() => {
@@ -284,7 +288,8 @@ export const RacingGame = ({ currentCar, highScore, onGameEnd }: RacingGameProps
     playRacingSound('crash');
 
     const finalScore = gameRef.current.score;
-    onGameEnd(finalScore);
+    const finalCoins = gameRef.current.collectedCoins;
+    onGameEnd(finalScore, finalCoins);
   }, [onGameEnd]);
 
   // Main game loop
@@ -386,8 +391,8 @@ export const RacingGame = ({ currentCar, highScore, onGameEnd }: RacingGameProps
             playerY < coin.y + 20 &&
             playerY + PLAYER_HEIGHT > coin.y
           ) {
-            game.score += 50;
-            setScore(game.score);
+            game.collectedCoins += 1;
+            setCollectedCoins(game.collectedCoins);
             playRacingSound('coin');
           } else {
             remainingCoins.push(coin);
@@ -433,6 +438,8 @@ export const RacingGame = ({ currentCar, highScore, onGameEnd }: RacingGameProps
       ctx.font = 'bold 16px monospace';
       ctx.fillText(`SCORE: ${game.score}`, 10, 25);
       ctx.fillText(`HIGH: ${highScore}`, 10, 45);
+      ctx.fillStyle = '#FFD700';
+      ctx.fillText(`🪙 ${game.collectedCoins}`, 10, 65);
 
       // Speed indicator
       ctx.fillStyle = '#ffff00';
@@ -497,7 +504,7 @@ export const RacingGame = ({ currentCar, highScore, onGameEnd }: RacingGameProps
         <div className="game-overlay racing-overlay gameover">
           <h2>GAME OVER</h2>
           <p>SCORE: {score}</p>
-          <p>+ 🪙 {score} COINS</p>
+          <p>+ 🪙 {collectedCoins} COINS</p>
           {score >= highScore && score > 0 && <p className="new-record">NEW RECORD!</p>}
           <button className="start-button pixel-button" onClick={startGame}>
             RETRY
