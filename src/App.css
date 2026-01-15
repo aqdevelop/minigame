@@ -34,6 +34,15 @@
   color: #ffff00;
 }
 
+.racing-header h1 {
+  color: #00ff00;
+  text-shadow: 3px 3px #006600, -1px -1px #00ffff;
+}
+
+.racing-main {
+  justify-content: center;
+}
+
 .app-header h1 {
   margin: 0;
   font-size: 24px;
