@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { initRacingAudio, startRacingBgm, stopRacingBgm, playRacingSound, speakCountdown } from './racingSound';
+import type { RacingCar } from './cars';
 import './RacingGame.css';
 
 const CANVAS_WIDTH = 400;
@@ -10,7 +11,7 @@ const ROAD_WIDTH = 300;
 const LANE_COUNT = 4;
 const LANE_WIDTH = ROAD_WIDTH / LANE_COUNT;
 
-interface Car {
+interface EnemyCar {
   id: string;
   x: number;
   y: number;
@@ -24,6 +25,12 @@ interface Coin {
   x: number;
   y: number;
   lane: number;
+}
+
+interface RacingGameProps {
+  currentCar: RacingCar;
+  highScore: number;
+  onGameEnd: (score: number) => void;
 }
 
 // Pixel art drawing helpers
@@ -119,20 +126,22 @@ const adjustBrightness = (hex: string, amount: number): string => {
 
 const ENEMY_COLORS = ['#ff4444', '#44ff44', '#4444ff', '#ff44ff', '#44ffff', '#ffff44'];
 
-export const RacingGame = () => {
+export const RacingGame = ({ currentCar, highScore, onGameEnd }: RacingGameProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<'idle' | 'countdown' | 'playing' | 'gameover'>('idle');
   const [score, setScore] = useState(0);
-  const [highScore, setHighScore] = useState(() => {
-    const saved = localStorage.getItem('racing-highscore');
-    return saved ? parseInt(saved) : 0;
-  });
+  const currentCarRef = useRef(currentCar);
+
+  // Keep car ref updated
+  useEffect(() => {
+    currentCarRef.current = currentCar;
+  }, [currentCar]);
 
   const gameRef = useRef({
     playerLane: 1,
     playerX: 0,
     targetX: 0,
-    enemies: [] as Car[],
+    enemies: [] as EnemyCar[],
     coins: [] as Coin[],
     lastEnemySpawn: 0,
     lastCoinSpawn: 0,
@@ -275,11 +284,8 @@ export const RacingGame = () => {
     playRacingSound('crash');
 
     const finalScore = gameRef.current.score;
-    if (finalScore > highScore) {
-      setHighScore(finalScore);
-      localStorage.setItem('racing-highscore', finalScore.toString());
-    }
-  }, [highScore]);
+    onGameEnd(finalScore);
+  }, [onGameEnd]);
 
   // Main game loop
   useEffect(() => {
@@ -291,6 +297,7 @@ export const RacingGame = () => {
 
     const gameLoop = () => {
       const game = gameRef.current;
+      const car = currentCarRef.current;
       const now = Date.now();
 
       // Clear canvas
@@ -301,8 +308,8 @@ export const RacingGame = () => {
 
       // Update game logic when playing
       if (gameState === 'playing') {
-        // Increase speed over time
-        game.speed = 5 + game.distance / 5000;
+        // Increase speed over time, multiplied by car's speed stat
+        game.speed = (5 + game.distance / 5000) * car.speed;
 
         // Update road animation
         game.roadOffset = (game.roadOffset + game.speed) % 40;
@@ -312,8 +319,8 @@ export const RacingGame = () => {
         game.score = Math.floor(game.distance / 10);
         setScore(game.score);
 
-        // Smooth player movement
-        const moveSpeed = 8;
+        // Smooth player movement (affected by handling)
+        const moveSpeed = 8 * car.handling;
         if (Math.abs(game.playerX - game.targetX) > moveSpeed) {
           game.playerX += game.playerX < game.targetX ? moveSpeed : -moveSpeed;
         } else {
@@ -417,9 +424,9 @@ export const RacingGame = () => {
         drawPixelCar(ctx, enemy.x, enemy.y, PLAYER_WIDTH, PLAYER_HEIGHT, enemy.color, false);
       });
 
-      // Draw player
+      // Draw player with current car color
       const playerY = CANVAS_HEIGHT - PLAYER_HEIGHT - 50;
-      drawPixelCar(ctx, game.playerX, playerY, PLAYER_WIDTH, PLAYER_HEIGHT, '#00aaff', true);
+      drawPixelCar(ctx, game.playerX, playerY, PLAYER_WIDTH, PLAYER_HEIGHT, car.color, true);
 
       // Draw UI
       ctx.fillStyle = '#fff';
@@ -431,6 +438,11 @@ export const RacingGame = () => {
       ctx.fillStyle = '#ffff00';
       ctx.font = '12px monospace';
       ctx.fillText(`SPEED: ${Math.floor(game.speed * 10)} km/h`, CANVAS_WIDTH - 120, 25);
+
+      // Car name
+      ctx.fillStyle = car.color;
+      ctx.font = '10px monospace';
+      ctx.fillText(car.nameKo, CANVAS_WIDTH - 120, 40);
 
       // Countdown overlay
       if (gameState === 'countdown') {
@@ -485,6 +497,7 @@ export const RacingGame = () => {
         <div className="game-overlay racing-overlay gameover">
           <h2>GAME OVER</h2>
           <p>SCORE: {score}</p>
+          <p>+ 🪙 {score} COINS</p>
           {score >= highScore && score > 0 && <p className="new-record">NEW RECORD!</p>}
           <button className="start-button pixel-button" onClick={startGame}>
             RETRY

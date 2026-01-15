@@ -1,0 +1,265 @@
+.racing-ui {
+  background: #0a0a1a;
+  padding: 20px;
+  min-width: 260px;
+  color: #fff;
+  border: 4px solid #333;
+  box-shadow:
+    0 0 0 2px #111,
+    0 0 0 4px #444;
+  font-family: 'Courier New', monospace;
+}
+
+.racing-ui h2 {
+  margin: 0 0 15px 0;
+  text-align: center;
+  color: #00ff00;
+  font-size: 20px;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  text-shadow: 2px 2px #000;
+}
+
+.racing-ui h3 {
+  margin: 15px 0 10px 0;
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.racing-stats {
+  background: #111;
+  padding: 10px;
+  border: 2px solid #333;
+  margin-bottom: 15px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid #222;
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+.stat-label {
+  color: #888;
+  font-size: 10px;
+}
+
+.stat-value {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.stat-value.coins {
+  color: #FFD700;
+}
+
+.current-car-section {
+  margin-bottom: 15px;
+}
+
+.current-car-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #111;
+  border: 3px solid;
+  border-radius: 4px;
+}
+
+.car-color-box {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #444;
+}
+
+.car-details {
+  flex: 1;
+}
+
+.car-name {
+  display: block;
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.car-stats {
+  font-size: 10px;
+  color: #888;
+}
+
+.shop-section {
+  margin-bottom: 15px;
+}
+
+.car-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.car-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  margin: 4px 0;
+  background: #111;
+  border: 2px solid #333;
+  border-left: 4px solid;
+  transition: all 0.2s;
+}
+
+.car-item.locked {
+  opacity: 0.6;
+}
+
+.car-item.unlocked {
+  opacity: 1;
+}
+
+.car-item.selected {
+  background: #1a2a1a;
+  border-color: #00ff00;
+}
+
+.car-item-info {
+  flex: 1;
+}
+
+.car-item-name {
+  display: block;
+  font-size: 11px;
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.car-item-stats {
+  font-size: 9px;
+  color: #666;
+}
+
+.car-item-action {
+  margin-left: 10px;
+}
+
+.equipped-badge {
+  font-size: 9px;
+  color: #00ff00;
+  padding: 4px 8px;
+  border: 1px solid #00ff00;
+  background: rgba(0, 255, 0, 0.1);
+}
+
+.select-btn {
+  padding: 4px 10px;
+  background: #006600;
+  border: 2px solid #00ff00;
+  color: #00ff00;
+  font-size: 9px;
+  font-family: 'Courier New', monospace;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.select-btn:hover {
+  background: #009900;
+}
+
+.buy-btn {
+  padding: 4px 10px;
+  background: #664400;
+  border: 2px solid #FFD700;
+  color: #FFD700;
+  font-size: 9px;
+  font-family: 'Courier New', monospace;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.buy-btn:hover:not(.disabled) {
+  background: #886600;
+}
+
+.buy-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.reset-btn {
+  width: 100%;
+  padding: 10px;
+  background: #333;
+  border: 2px solid #666;
+  color: #888;
+  font-size: 10px;
+  font-family: 'Courier New', monospace;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 10px;
+}
+
+.reset-btn:hover {
+  background: #444;
+  color: #fff;
+  border-color: #888;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .racing-ui {
+    width: 100%;
+    max-width: 400px;
+    min-width: auto;
+    padding: 15px;
+  }
+
+  .racing-ui h2 {
+    font-size: 16px;
+  }
+
+  .car-list {
+    max-height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .racing-ui {
+    padding: 10px;
+    border-width: 2px;
+  }
+
+  .racing-ui h2 {
+    font-size: 14px;
+    letter-spacing: 2px;
+  }
+
+  .racing-ui h3 {
+    font-size: 9px;
+  }
+
+  .car-item {
+    padding: 6px 8px;
+  }
+
+  .car-item-name {
+    font-size: 10px;
+  }
+
+  .car-item-stats {
+    font-size: 8px;
+  }
+
+  .select-btn,
+  .buy-btn {
+    font-size: 8px;
+    padding: 3px 8px;
+  }
+}

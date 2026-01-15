@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './App.css';
 import { FighterGame } from './games/fighter';
-import { RacingGame } from './games/racing';
+import { RacingGame, RacingUI, useRacingState } from './games/racing';
 import { GameUI } from './components/GameUI';
 import { VersionBadge } from './components/VersionBadge';
 import { LandingPage } from './components/LandingPage';
@@ -26,12 +26,27 @@ function App() {
     resetProgress,
   } = useGameState();
 
+  const {
+    state: racingState,
+    currentCar,
+    addCoins,
+    updateHighScore,
+    buyCar,
+    selectCar,
+    resetProgress: resetRacingProgress,
+  } = useRacingState();
+
   const handleBackToHome = () => {
     setCurrentPage('landing');
   };
 
   const handleSelectGame = (game: 'fighter' | 'racing') => {
     setCurrentPage(game);
+  };
+
+  const handleRacingGameEnd = (score: number) => {
+    addCoins(score);
+    updateHighScore(score);
   };
 
   if (currentPage === 'landing') {
@@ -53,8 +68,23 @@ function App() {
           <h1>RACING</h1>
         </header>
 
-        <main className="app-main racing-main">
-          <RacingGame />
+        <main className="app-main">
+          <RacingGame
+            currentCar={currentCar}
+            highScore={racingState.highScore}
+            onGameEnd={handleRacingGameEnd}
+          />
+
+          <RacingUI
+            coins={racingState.coins}
+            totalCoins={racingState.totalCoins}
+            currentCar={currentCar}
+            unlockedCars={racingState.unlockedCars}
+            highScore={racingState.highScore}
+            onBuyCar={buyCar}
+            onSelectCar={selectCar}
+            onReset={resetRacingProgress}
+          />
         </main>
 
         <VersionBadge />
