@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import './App.css';
 import { FighterGame } from './games/fighter';
 import { GameUI } from './components/GameUI';
 import { VersionBadge } from './components/VersionBadge';
+import { LandingPage } from './components/LandingPage';
 import { useGameState } from './hooks/useGameState';
 
 function App() {
+  const [currentPage, setCurrentPage] = useState<'landing' | 'fighter'>('landing');
+
   const {
     state,
     currentPlane,
@@ -19,10 +23,26 @@ function App() {
     resetProgress,
   } = useGameState();
 
+  const handleBackToHome = () => {
+    setCurrentPage('landing');
+  };
+
+  if (currentPage === 'landing') {
+    return (
+      <>
+        <LandingPage onPlayGame={() => setCurrentPage('fighter')} />
+        <VersionBadge />
+      </>
+    );
+  }
+
   return (
     <div className="app">
       <header className="app-header">
-        <h1>FIGHTER MINIGAME</h1>
+        <button className="back-button" onClick={handleBackToHome}>
+          ← HOME
+        </button>
+        <h1>FIGHTER</h1>
       </header>
 
       <main className="app-main">
