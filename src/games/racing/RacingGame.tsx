@@ -391,7 +391,7 @@ export const RacingGame = ({ currentCar, highScore, onGameEnd }: RacingGameProps
             playerY < coin.y + 20 &&
             playerY + PLAYER_HEIGHT > coin.y
           ) {
-            game.collectedCoins += 1;
+            game.collectedCoins += 200;
             setCollectedCoins(game.collectedCoins);
             playRacingSound('coin');
           } else {
