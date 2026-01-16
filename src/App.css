@@ -44,6 +44,11 @@
   text-shadow: 3px 3px #006666, -1px -1px #ff00ff;
 }
 
+.airmission-header h1 {
+  color: #5abaff;
+  text-shadow: 3px 3px #1a3a5a, -1px -1px #ffc107;
+}
+
 .racing-main {
   justify-content: center;
 }

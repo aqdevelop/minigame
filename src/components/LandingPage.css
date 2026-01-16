@@ -89,6 +89,15 @@
   color: #00ffff;
 }
 
+.game-card.airmission-card:hover {
+  border-color: #5abaff;
+  box-shadow: 0 0 20px rgba(90, 186, 255, 0.3);
+}
+
+.game-card.airmission-card .game-info h2 {
+  color: #5abaff;
+}
+
 .game-card:active {
   transform: scale(0.98);
 }

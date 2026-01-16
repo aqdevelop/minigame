@@ -3,12 +3,13 @@ import './App.css';
 import { FighterGame } from './games/fighter';
 import { RacingGame, RacingUI, useRacingState } from './games/racing';
 import { RunnerGame } from './games/runner';
+import { AirMissionGame } from './games/airmission';
 import { GameUI } from './components/GameUI';
 import { VersionBadge } from './components/VersionBadge';
 import { LandingPage } from './components/LandingPage';
 import { useGameState } from './hooks/useGameState';
 
-type PageType = 'landing' | 'fighter' | 'racing' | 'runner';
+type PageType = 'landing' | 'fighter' | 'racing' | 'runner' | 'airmission';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('landing');
@@ -41,7 +42,7 @@ function App() {
     setCurrentPage('landing');
   };
 
-  const handleSelectGame = (game: 'fighter' | 'racing' | 'runner') => {
+  const handleSelectGame = (game: 'fighter' | 'racing' | 'runner' | 'airmission') => {
     setCurrentPage(game);
   };
 
@@ -71,6 +72,30 @@ function App() {
 
         <main className="app-main">
           <RunnerGame />
+        </main>
+
+        <VersionBadge />
+      </div>
+    );
+  }
+
+  if (currentPage === 'airmission') {
+    return (
+      <div className="app">
+        <header className="app-header airmission-header">
+          <button className="back-button" onClick={handleBackToHome}>
+            ← HOME
+          </button>
+          <h1>AIR MISSION</h1>
+        </header>
+
+        <main className="app-main">
+          <AirMissionGame
+            onGameEnd={(_score, coins) => {
+              addCoins(coins);
+              handleBackToHome();
+            }}
+          />
         </main>
 
         <VersionBadge />
