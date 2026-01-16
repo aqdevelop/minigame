@@ -95,65 +95,127 @@ export const playSound = (type: 'shoot' | 'hit' | 'explosion' | 'damage' | 'powe
   }
 };
 
-// BGM System
-let bgmOscillators: OscillatorNode[] = [];
-let bgmGains: GainNode[] = [];
+// BGM System - Epic Space Battle Theme
 let bgmInterval: number | null = null;
 let isBgmPlaying = false;
+let bgmGain: GainNode | null = null;
 
-const bgmNotes = [
-  [130.81, 164.81, 196.00], // C3, E3, G3
-  [146.83, 185.00, 220.00], // D3, F#3, A3
-  [130.81, 164.81, 196.00], // C3, E3, G3
-  [123.47, 155.56, 185.00], // B2, Eb3, F#3
-  [110.00, 138.59, 164.81], // A2, C#3, E3
-  [123.47, 146.83, 185.00], // B2, D3, F#3
-  [130.81, 164.81, 196.00], // C3, E3, G3
-  [146.83, 185.00, 220.00], // D3, F#3, A3
+// Heroic space battle melody (inspired by classic shooters)
+const melodyNotes = [
+  // Main theme - heroic ascending
+  659, 659, 659, 523, 784, 659, 523, 392,
+  // Build up
+  523, 523, 523, 440, 659, 523, 440, 349,
+  // Climax
+  784, 784, 880, 784, 659, 523, 659, 784,
+  // Resolution
+  880, 784, 659, 523, 659, 523, 440, 392,
 ];
 
-let currentNoteIndex = 0;
+// Powerful bass line
+const bassNotes = [
+  131, 131, 165, 131, 175, 175, 131, 131,
+  110, 110, 131, 110, 147, 147, 110, 110,
+  175, 175, 196, 175, 165, 165, 147, 147,
+  196, 175, 165, 131, 165, 131, 110, 98,
+];
+
+// Rhythmic arpeggio
+const arpeggioNotes = [
+  [523, 659, 784], [523, 659, 784], [440, 523, 659], [440, 523, 659],
+  [349, 440, 523], [349, 440, 523], [392, 494, 587], [392, 494, 587],
+];
+
+let noteIndex = 0;
 
 export const startBgm = () => {
   if (isBgmPlaying) return;
   isBgmPlaying = true;
+  noteIndex = 0;
 
-  const playNote = () => {
+  const ctx = getAudioContext();
+  bgmGain = ctx.createGain();
+  bgmGain.gain.value = 0.12;
+  bgmGain.connect(ctx.destination);
+
+  const noteLength = 0.18;
+
+  const playMelody = () => {
+    if (!isBgmPlaying || !bgmGain) return;
     const ctx = getAudioContext();
-    const notes = bgmNotes[currentNoteIndex % bgmNotes.length];
 
-    // Clear previous
-    bgmOscillators.forEach((osc) => {
-      try { osc.stop(); } catch {}
-    });
-    bgmOscillators = [];
-    bgmGains = [];
+    // Lead melody
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = melodyNotes[noteIndex % melodyNotes.length];
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + noteLength * 0.9);
+    osc.connect(gain);
+    gain.connect(bgmGain);
+    osc.start();
+    osc.stop(ctx.currentTime + noteLength);
 
-    notes.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = i === 0 ? 'square' : 'triangle';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-
-      gain.gain.setValueAtTime(0.05, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start();
-      osc.stop(ctx.currentTime + 0.45);
-
-      bgmOscillators.push(osc);
-      bgmGains.push(gain);
-    });
-
-    currentNoteIndex++;
+    noteIndex++;
+    if (isBgmPlaying) {
+      setTimeout(playMelody, noteLength * 1000);
+    }
   };
 
-  playNote();
-  bgmInterval = window.setInterval(playNote, 500);
+  let bassIndex = 0;
+  const playBass = () => {
+    if (!isBgmPlaying || !bgmGain) return;
+    const ctx = getAudioContext();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = bassNotes[bassIndex % bassNotes.length];
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.02, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(bgmGain);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.4);
+
+    bassIndex++;
+    if (isBgmPlaying) {
+      setTimeout(playBass, 360);
+    }
+  };
+
+  let arpIndex = 0;
+  const playArpeggio = () => {
+    if (!isBgmPlaying || !bgmGain) return;
+    const ctx = getAudioContext();
+
+    const chord = arpeggioNotes[arpIndex % arpeggioNotes.length];
+    chord.forEach((freq, i) => {
+      setTimeout(() => {
+        if (!isBgmPlaying || !bgmGain) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(bgmGain!);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.12);
+      }, i * 50);
+    });
+
+    arpIndex++;
+    if (isBgmPlaying) {
+      setTimeout(playArpeggio, 720);
+    }
+  };
+
+  // Start all tracks
+  playMelody();
+  setTimeout(playBass, 100);
+  setTimeout(playArpeggio, 200);
 };
 
 export const stopBgm = () => {
@@ -162,12 +224,11 @@ export const stopBgm = () => {
     clearInterval(bgmInterval);
     bgmInterval = null;
   }
-  bgmOscillators.forEach((osc) => {
-    try { osc.stop(); } catch {}
-  });
-  bgmOscillators = [];
-  bgmGains = [];
-  currentNoteIndex = 0;
+  if (bgmGain) {
+    bgmGain.disconnect();
+    bgmGain = null;
+  }
+  noteIndex = 0;
 };
 
 export const initAudio = () => {
@@ -181,7 +242,6 @@ export const speakSixSeven = () => {
     utterance.rate = 0.8;
     utterance.pitch = 0.5;
     utterance.volume = 0.7;
-    // Try to get a robotic-sounding voice
     const voices = speechSynthesis.getVoices();
     const robotVoice = voices.find(v => v.name.includes('Google') || v.name.includes('English'));
     if (robotVoice) {

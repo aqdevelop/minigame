@@ -1,85 +1,143 @@
-// Racing Game Sound System
+// Racing Game Sound System - Outrun/Arcade Style BGM
 let audioContext: AudioContext | null = null;
-let bgmOscillator: OscillatorNode | null = null;
 let bgmGain: GainNode | null = null;
 let isBgmPlaying = false;
 
 export const initRacingAudio = () => {
   if (!audioContext) {
-    audioContext = new (window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    audioContext = new AudioContext();
   }
   return audioContext;
 };
 
-// Retro racing BGM - upbeat chiptune style
+// Energetic Outrun-style racing melody
+const melodyNotes = [
+  // Intro hook - exciting start
+  880, 880, 784, 880, 1047, 880, 784, 659,
+  // Main verse - driving energy
+  784, 784, 659, 784, 880, 784, 659, 523,
+  // Bridge - building tension
+  659, 784, 880, 1047, 880, 784, 659, 784,
+  // Chorus - triumphant feel
+  1047, 1047, 880, 1047, 1175, 1047, 880, 784,
+];
+
+// Punchy bass for speed feel
+const bassNotes = [
+  165, 165, 196, 220, 165, 165, 196, 247,
+  147, 147, 175, 196, 147, 147, 175, 220,
+  196, 196, 220, 247, 196, 196, 220, 294,
+  220, 220, 262, 294, 220, 220, 262, 330,
+];
+
+// Rhythm pattern (drums simulation)
+const drumPattern = [1, 0, 0.5, 0, 1, 0, 0.5, 0.5];
+
 export const startRacingBgm = () => {
   if (isBgmPlaying) return;
-
   const ctx = initRacingAudio();
   if (!ctx) return;
 
+  bgmGain = ctx.createGain();
+  bgmGain.gain.value = 0.15;
+  bgmGain.connect(ctx.destination);
+
   isBgmPlaying = true;
 
-  const playBgmLoop = () => {
-    if (!isBgmPlaying || !audioContext) return;
+  let melodyIndex = 0;
+  const noteLength = 0.14;
 
-    // Racing melody pattern - energetic and fast
-    const melody = [
-      { freq: 440, dur: 0.1 },   // A
-      { freq: 523, dur: 0.1 },   // C
-      { freq: 659, dur: 0.1 },   // E
-      { freq: 523, dur: 0.1 },   // C
-      { freq: 440, dur: 0.1 },   // A
-      { freq: 523, dur: 0.1 },   // C
-      { freq: 587, dur: 0.2 },   // D
-      { freq: 523, dur: 0.1 },   // C
-      { freq: 494, dur: 0.1 },   // B
-      { freq: 440, dur: 0.1 },   // A
-      { freq: 392, dur: 0.1 },   // G
-      { freq: 440, dur: 0.2 },   // A
-      { freq: 523, dur: 0.1 },   // C
-      { freq: 587, dur: 0.1 },   // D
-      { freq: 659, dur: 0.2 },   // E
-      { freq: 587, dur: 0.1 },   // D
-    ];
+  const playMelody = () => {
+    if (!isBgmPlaying || !bgmGain) return;
 
-    let time = audioContext.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = melodyNotes[melodyIndex % melodyNotes.length];
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + noteLength * 0.85);
+    osc.connect(gain);
+    gain.connect(bgmGain);
+    osc.start();
+    osc.stop(ctx.currentTime + noteLength);
 
-    melody.forEach(({ freq, dur }) => {
-      if (!audioContext || !isBgmPlaying) return;
-
-      const osc = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-
-      osc.type = 'square';
-      osc.frequency.value = freq;
-
-      gain.gain.setValueAtTime(0.08, time);
-      gain.gain.exponentialRampToValueAtTime(0.01, time + dur * 0.9);
-
-      osc.connect(gain);
-      gain.connect(audioContext.destination);
-
-      osc.start(time);
-      osc.stop(time + dur);
-
-      time += dur;
-    });
-
-    // Loop the BGM
-    setTimeout(playBgmLoop, melody.reduce((acc, n) => acc + n.dur * 1000, 0));
+    melodyIndex++;
+    if (isBgmPlaying) {
+      setTimeout(playMelody, noteLength * 1000);
+    }
   };
 
-  playBgmLoop();
+  let bassIndex = 0;
+  const playBass = () => {
+    if (!isBgmPlaying || !bgmGain) return;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = bassNotes[bassIndex % bassNotes.length];
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.02, ctx.currentTime + 0.25);
+    osc.connect(gain);
+    gain.connect(bgmGain);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.28);
+
+    bassIndex++;
+    if (isBgmPlaying) {
+      setTimeout(playBass, 280);
+    }
+  };
+
+  let drumIndex = 0;
+  const playDrum = () => {
+    if (!isBgmPlaying || !bgmGain) return;
+
+    const intensity = drumPattern[drumIndex % drumPattern.length];
+    if (intensity > 0) {
+      // Kick drum (low noise burst)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(intensity === 1 ? 150 : 100, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.3 * intensity, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+      osc.connect(gain);
+      gain.connect(bgmGain);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.12);
+
+      // Hi-hat on off-beats
+      if (intensity === 0.5) {
+        const noise = ctx.createOscillator();
+        const noiseGain = ctx.createGain();
+        noise.type = 'square';
+        noise.frequency.value = 8000;
+        noiseGain.gain.setValueAtTime(0.05, ctx.currentTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.03);
+        noise.connect(noiseGain);
+        noiseGain.connect(bgmGain);
+        noise.start();
+        noise.stop(ctx.currentTime + 0.05);
+      }
+    }
+
+    drumIndex++;
+    if (isBgmPlaying) {
+      setTimeout(playDrum, 140);
+    }
+  };
+
+  // Start all tracks with slight offsets for groove
+  playMelody();
+  setTimeout(playBass, 50);
+  setTimeout(playDrum, 0);
 };
 
 export const stopRacingBgm = () => {
   isBgmPlaying = false;
-  if (bgmOscillator) {
-    bgmOscillator.stop();
-    bgmOscillator = null;
-  }
   if (bgmGain) {
+    bgmGain.disconnect();
     bgmGain = null;
   }
 };
@@ -163,7 +221,6 @@ export const speakCountdown = (onComplete: () => void) => {
       utterance.pitch = 1.2;
       utterance.volume = 0.8;
 
-      // Try to get an English voice
       const voices = speechSynthesis.getVoices();
       const englishVoice = voices.find(v => v.lang.startsWith('en'));
       if (englishVoice) {
@@ -179,7 +236,6 @@ export const speakCountdown = (onComplete: () => void) => {
     }, delay);
   };
 
-  // 3... 2... 1... START!
   speak('3', 0);
   speak('2', 1000);
   speak('1', 2000);
