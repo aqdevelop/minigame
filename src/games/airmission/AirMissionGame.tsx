@@ -260,13 +260,17 @@ const AirMissionGame: React.FC<AirMissionGameProps> = ({ onGameEnd }) => {
     };
   }, [handleKeyDown, handleKeyUp]);
 
-  // Touch handlers for mobile
   useEffect(() => {
     if (gameState !== 'playing') return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
+    let animationId: number;
+
+    // Touch handlers for mobile
     const getCanvasCoords = (touch: Touch) => {
       const rect = canvas.getBoundingClientRect();
       const scaleX = CANVAS_WIDTH / rect.width;
@@ -307,24 +311,6 @@ const AirMissionGame: React.FC<AirMissionGameProps> = ({ onGameEnd }) => {
     canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
     canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
     canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
-
-    return () => {
-      canvas.removeEventListener('touchstart', handleTouchStart);
-      canvas.removeEventListener('touchmove', handleTouchMove);
-      canvas.removeEventListener('touchend', handleTouchEnd);
-      canvas.removeEventListener('touchcancel', handleTouchEnd);
-    };
-  }, [gameState]);
-
-  useEffect(() => {
-    if (gameState !== 'playing') return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animationId: number;
 
     const spawnEnemy = () => {
       const game = gameRef.current;
@@ -1196,6 +1182,10 @@ const AirMissionGame: React.FC<AirMissionGameProps> = ({ onGameEnd }) => {
 
     return () => {
       cancelAnimationFrame(animationId);
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+      canvas.removeEventListener('touchcancel', handleTouchEnd);
     };
   }, [gameState, currentMission]);
 
