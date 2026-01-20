@@ -361,6 +361,49 @@
   background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 100%);
 }
 
+/* Game wrapper for mobile controls */
+.airmission-game-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Mobile missile button */
+.mobile-missile-button {
+  display: none;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  padding: 15px 30px;
+  background: linear-gradient(180deg, #ff6b00 0%, #cc5500 100%);
+  color: #fff;
+  border: 3px solid #ff9944;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.1s;
+  text-shadow: 1px 1px 0 #662200;
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.mobile-missile-button:active {
+  transform: scale(0.95);
+  background: linear-gradient(180deg, #ff8833 0%, #dd6600 100%);
+}
+
+/* Mobile controls hint */
+.mobile-controls-hint {
+  display: none;
+  font-family: monospace;
+  font-size: 11px;
+  color: #88aacc;
+  text-align: center;
+  margin: 0;
+}
+
 /* Mobile touch controls hint */
 @media (max-width: 768px) {
   .airmission-container {
@@ -392,5 +435,29 @@
   .start-button {
     font-size: 12px;
     padding: 12px 30px;
+  }
+
+  /* Show mobile controls */
+  .mobile-missile-button {
+    display: block;
+  }
+
+  .mobile-controls-hint {
+    display: block;
+  }
+
+  .briefing-controls p {
+    font-size: 10px;
+  }
+}
+
+/* Touch device detection */
+@media (pointer: coarse) {
+  .mobile-missile-button {
+    display: block;
+  }
+
+  .mobile-controls-hint {
+    display: block;
   }
 }

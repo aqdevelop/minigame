@@ -115,6 +115,17 @@ interface AirMissionGameProps {
 
 const AirMissionGame: React.FC<AirMissionGameProps> = ({ onGameEnd }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const touchRef = useRef<{
+    active: boolean;
+    currentX: number;
+    currentY: number;
+    lastShootTime: number;
+  }>({
+    active: false,
+    currentX: 0,
+    currentY: 0,
+    lastShootTime: 0,
+  });
   const gameRef = useRef<{
     player: Position & { health: number; maxHealth: number };
     bullets: Bullet[];
@@ -248,6 +259,60 @@ const AirMissionGame: React.FC<AirMissionGameProps> = ({ onGameEnd }) => {
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, [handleKeyDown, handleKeyUp]);
+
+  // Touch handlers for mobile
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const getCanvasCoords = (touch: Touch) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = CANVAS_WIDTH / rect.width;
+      const scaleY = CANVAS_HEIGHT / rect.height;
+      return {
+        x: (touch.clientX - rect.left) * scaleX,
+        y: (touch.clientY - rect.top) * scaleY,
+      };
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const coords = getCanvasCoords(touch);
+      touchRef.current = {
+        active: true,
+        currentX: coords.x,
+        currentY: coords.y,
+        lastShootTime: 0,
+      };
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      if (!touchRef.current.active) return;
+      const touch = e.touches[0];
+      const coords = getCanvasCoords(touch);
+      touchRef.current.currentX = coords.x;
+      touchRef.current.currentY = coords.y;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      e.preventDefault();
+      touchRef.current.active = false;
+    };
+
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+      canvas.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, []);
 
   useEffect(() => {
     if (gameState !== 'playing') return;
@@ -662,6 +727,41 @@ const AirMissionGame: React.FC<AirMissionGameProps> = ({ onGameEnd }) => {
       }
       if (game.keys.has('arrowdown') || game.keys.has('s')) {
         game.player.y = Math.min(CANVAS_HEIGHT - 60, game.player.y + speed);
+      }
+
+      // Touch controls - move player towards touch point
+      const touch = touchRef.current;
+      if (touch.active) {
+        const targetX = touch.currentX - 20; // Center of player
+        const targetY = touch.currentY - 22;
+        const dx = targetX - game.player.x;
+        const dy = targetY - game.player.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > speed) {
+          game.player.x += (dx / dist) * speed * 1.5;
+          game.player.y += (dy / dist) * speed * 1.5;
+        } else {
+          game.player.x = targetX;
+          game.player.y = targetY;
+        }
+
+        // Keep player in bounds
+        game.player.x = Math.max(0, Math.min(CANVAS_WIDTH - 40, game.player.x));
+        game.player.y = Math.max(0, Math.min(CANVAS_HEIGHT - 60, game.player.y));
+
+        // Auto-fire while touching
+        const now = Date.now();
+        if (now - touch.lastShootTime > 150) { // Fire every 150ms
+          game.bullets.push({
+            x: game.player.x + 18,
+            y: game.player.y,
+            isEnemy: false,
+            speed: 10,
+          });
+          playShootSound();
+          touch.lastShootTime = now;
+        }
       }
 
       // Scroll background
@@ -1110,6 +1210,39 @@ const AirMissionGame: React.FC<AirMissionGameProps> = ({ onGameEnd }) => {
     onGameEnd(score, collectedCoins);
   }, [onGameEnd, score, collectedCoins]);
 
+  // Fire missile (for mobile button)
+  const fireMissile = useCallback(() => {
+    const game = gameRef.current;
+    if (!game || gameState !== 'playing') return;
+
+    if (game.missileCount > 0) {
+      let targetX = game.player.x + 20;
+      let targetY = 0;
+
+      if (game.boss) {
+        targetX = game.boss.weakPointX;
+        targetY = game.boss.weakPointY;
+      } else if (game.enemies.length > 0) {
+        const nearest = game.enemies.reduce((a, b) =>
+          Math.hypot(a.x - game.player.x, a.y - game.player.y) <
+          Math.hypot(b.x - game.player.x, b.y - game.player.y) ? a : b
+        );
+        targetX = nearest.x + 20;
+        targetY = nearest.y + 15;
+      }
+
+      game.missiles.push({
+        x: game.player.x + 18,
+        y: game.player.y,
+        targetX,
+        targetY,
+      });
+      game.missileCount--;
+      setMissileCount(game.missileCount);
+      playMissileSound();
+    }
+  }, [gameState]);
+
   const renderBriefing = () => {
     const mission = MISSIONS[currentMission];
 
@@ -1195,12 +1328,25 @@ const AirMissionGame: React.FC<AirMissionGameProps> = ({ onGameEnd }) => {
     <div className="airmission-container">
       {gameState === 'briefing' && renderBriefing()}
       {gameState === 'playing' && (
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_WIDTH}
-          height={CANVAS_HEIGHT}
-          className="airmission-canvas"
-        />
+        <div className="airmission-game-wrapper">
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            className="airmission-canvas"
+          />
+          <button
+            className="mobile-missile-button"
+            onTouchStart={(e) => {
+              e.preventDefault();
+              fireMissile();
+            }}
+            onClick={fireMissile}
+          >
+            MISSILE
+          </button>
+          <p className="mobile-controls-hint">터치로 이동 + 자동 발사</p>
+        </div>
       )}
       {gameState === 'missionComplete' && renderMissionComplete()}
       {gameState === 'gameover' && renderGameOver()}
