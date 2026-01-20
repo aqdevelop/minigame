@@ -262,6 +262,8 @@ const AirMissionGame: React.FC<AirMissionGameProps> = ({ onGameEnd }) => {
 
   // Touch handlers for mobile
   useEffect(() => {
+    if (gameState !== 'playing') return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -312,7 +314,7 @@ const AirMissionGame: React.FC<AirMissionGameProps> = ({ onGameEnd }) => {
       canvas.removeEventListener('touchend', handleTouchEnd);
       canvas.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, []);
+  }, [gameState]);
 
   useEffect(() => {
     if (gameState !== 'playing') return;
