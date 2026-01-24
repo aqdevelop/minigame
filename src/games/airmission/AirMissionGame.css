@@ -5,6 +5,8 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #0a1628 0%, #1a3a5c 50%, #0a1628 100%);
   padding: 20px;
+  touch-action: none;
+  overflow: hidden;
 }
 
 .airmission-canvas {
@@ -372,6 +374,7 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  touch-action: none;
 }
 
 /* Mobile missile button */
